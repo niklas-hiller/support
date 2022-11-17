@@ -1,9 +1,8 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Newtonsoft.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using Support.Discord.Models;
 using Support.Shared;
-using System.Net;
 
 namespace Support.Discord.Services
 {
@@ -12,6 +11,38 @@ namespace Support.Discord.Services
         private static readonly DiscordSocketClient client = Program.client;
         private static readonly List<DiscordTicket> tickets = new List<DiscordTicket>();
         private static readonly Dictionary<ulong, ulong> supportChannels = new Dictionary<ulong, ulong>();
+        private static HubConnection hubConnection;
+        private static readonly Session session = new Session() { GroupName = SessionGroups.Listener, Name = "Discord" };
+
+        public static async Task ConnectHub()
+        {
+            if (hubConnection == null)
+            {
+                hubConnection = new HubConnectionBuilder()
+                    .WithUrl("https://localhost:7290/Support")
+                    .Build();
+
+                hubConnection.On<Ticket>(ServerBroadcasts.SendTicketUpdate, async ticket =>
+                {
+                    try
+                    {
+                        await ReceiveTicket(ticket);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to receive ticket");
+                        Console.WriteLine(ex);
+                    }
+                });
+            }
+
+            await hubConnection.StartAsync();
+
+            await hubConnection.SendAsync(
+                ServerBroadcasts.SessionConnected,
+                session
+            );
+        }
 
         public static async Task CreateTicket(SocketModal modal, ETicketType type)
         {
@@ -34,9 +65,15 @@ namespace Support.Discord.Services
             await modal.RespondAsync($"Successfully submitted your ticket. ({ticket.Id})", ephemeral: true);
         }
 
-        private static async Task TransmitTicket(DiscordTicket ticket)
+        private static async Task TransmitTicket(DiscordTicket discordTicket)
         {
+            Ticket ticket = discordTicket.Downgrade();
             // Send ticket to hub
+            await hubConnection.SendAsync(
+                ServerBroadcasts.SendTicketUpdate,
+                session,
+                ticket
+            );
         }
 
         private static async Task ReceiveTicket(Ticket ticket)
@@ -44,6 +81,7 @@ namespace Support.Discord.Services
             // Receive ticket from hub
             try
             {
+                Console.WriteLine($"Ticket ID: {ticket.Id}");
                 DiscordTicket discordTicket = tickets.First(x => x.Id == ticket.Id);
                 discordTicket.Update(ticket);
                 await UpdateTicket(discordTicket);
@@ -54,7 +92,7 @@ namespace Support.Discord.Services
             }
         }
 
-        public static async Task SimulateReceiveTicket(string ticketId, ETicketStatus newStatus)
+        public static async Task UpdateTicket(string ticketId, ETicketStatus newStatus)
         {
             // Receive ticket from hub
             try
@@ -62,7 +100,7 @@ namespace Support.Discord.Services
                 DiscordTicket discordTicket = tickets.First(x => x.Id == ticketId);
                 discordTicket.Status = newStatus;
                 discordTicket.LastUpdatedAt = DateTimeOffset.Now;
-                await UpdateTicket(discordTicket);
+                await TransmitTicket(discordTicket);
             }
             catch (ArgumentNullException ex)
             {

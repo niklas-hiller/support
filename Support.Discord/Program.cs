@@ -1,9 +1,7 @@
 ﻿using Discord;
-using Discord.Interactions;
 using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Support.Discord.Models;
 using Support.Discord.Services;
 using Support.Shared;
@@ -50,6 +48,8 @@ namespace Support.Discord
 
         public async Task Client_Ready()
         {
+            await SupportService.ConnectHub();
+
             const ulong guildId = OfficialGuildId;
 
             var guildCommand = new SlashCommandBuilder()
@@ -179,7 +179,7 @@ namespace Support.Discord
 
             var ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
 
-            await SupportService.SimulateReceiveTicket(ticketId, status);
+            await SupportService.UpdateTicket(ticketId, status);
             await command.RespondAsync("Done");
         }
 

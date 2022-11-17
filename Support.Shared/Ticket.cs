@@ -8,14 +8,16 @@ namespace Support.Shared
 {
     public class Ticket
     {
-        public readonly string Id;
+        public string Id { get; set; }
         public ETicketType Type { get; set; }
         public ETicketStatus Status { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public string Author { get; set; }
-        public readonly DateTimeOffset CreatedAt;
+        public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset LastUpdatedAt { get; set; }
+
+        public Ticket() { }
 
         public Ticket(ETicketType Type, ETicketStatus Status,
             string Title, string Description, string Author,

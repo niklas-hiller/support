@@ -39,5 +39,7 @@ namespace Support.Discord.Models
             this.Author = ticket.Author;
             this.LastUpdatedAt = ticket.LastUpdatedAt;
         }
+
+        public Ticket Downgrade() => new Ticket(Id, Type, Status, Title, Description, Author, CreatedAt, LastUpdatedAt);
     }
 }
