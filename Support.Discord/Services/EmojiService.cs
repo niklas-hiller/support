@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Support.Discord.Models;
 using Support.Shared;
 
 namespace Support.Discord.Services
@@ -8,7 +9,7 @@ namespace Support.Discord.Services
     {
         private static readonly DiscordSocketClient client = Program.client;
 
-        private const ulong OfficialGuildId = 909435376857391135;
+        private static readonly BotConfiguration configuration = Program.configuration;
 
         private static Dictionary<string, string> Emojis = new Dictionary<string, string>
         {
@@ -27,7 +28,7 @@ namespace Support.Discord.Services
 
         private static Emote? GetEmoji(string emojiName)
         {
-            var source = client.GetGuild(OfficialGuildId);
+            var source = client.GetGuild(configuration.RootGuildId);
             if (source == null) return null;
 
             var emoji = source.Emotes.FirstOrDefault(x => x.Name == emojiName, null);

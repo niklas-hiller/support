@@ -18,7 +18,7 @@ namespace Support.Discord
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private const ulong OfficialGuildId = 909435376857391135;
+        public static readonly BotConfiguration configuration = JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json"));
 
         public async Task MainAsync()
         {
@@ -37,9 +37,9 @@ namespace Support.Discord
             // Some alternative options would be to keep your token in an Environment Variable or a standalone file.
             // var token = Environment.GetEnvironmentVariable("NameOfYourEnvironmentVariable");
             // var token = File.ReadAllText("token.txt");
-            var token = JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json")).Token;
+            // var token = JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json")).Token;
 
-            await client.LoginAsync(TokenType.Bot, token);
+            await client.LoginAsync(TokenType.Bot, configuration.Token);
             await client.StartAsync();
 
             // Block this task until the program is closed.
@@ -56,7 +56,7 @@ namespace Support.Discord
         {
             await SupportService.ConnectHub();
 
-            const ulong guildId = OfficialGuildId;
+            ulong guildId = configuration.RootGuildId;
 
             var guildCommand = new SlashCommandBuilder()
                 .WithName("list-roles") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
