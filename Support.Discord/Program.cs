@@ -62,18 +62,14 @@ namespace Support.Discord
                 .WithDescription("Initiates the support channel if it does not exist yet.");  // Descriptions can have a max length of 100.
 
             var guildCommand3 = new SlashCommandBuilder()
-                .WithName("where") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Retrieves the current support channel if it exists.");  // Descriptions can have a max length of 100.
-
-            var guildCommand4 = new SlashCommandBuilder()
                 .WithName("report-bug") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
                 .WithDescription("Creates a bug ticket.");  // Descriptions can have a max length of 100.
 
-            var guildCommand5 = new SlashCommandBuilder()
+            var guildCommand4 = new SlashCommandBuilder()
                 .WithName("report-request") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
                 .WithDescription("Creates a request ticket.");  // Descriptions can have a max length of 100.
 
-            var guildCommand6 = new SlashCommandBuilder()
+            var guildCommand5 = new SlashCommandBuilder()
                 .WithName("update-ticket") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
                 .WithDescription("Updates a ticket.")  // Descriptions can have a max length of 100. 
                 .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
@@ -92,7 +88,6 @@ namespace Support.Discord
                 await client.Rest.CreateGuildCommand(guildCommand3.Build(), guildId);
                 await client.Rest.CreateGuildCommand(guildCommand4.Build(), guildId);
                 await client.Rest.CreateGuildCommand(guildCommand5.Build(), guildId);
-                await client.Rest.CreateGuildCommand(guildCommand6.Build(), guildId);
 
                 // With global commands we don't need the guild.
                 //await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
