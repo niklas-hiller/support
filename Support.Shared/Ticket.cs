@@ -11,6 +11,7 @@ namespace Support.Shared
         public string Id { get; set; }
         public ETicketType Type { get; set; }
         public ETicketStatus Status { get; set; }
+        public ETicketPriority Priority { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public string Author { get; set; }
@@ -19,13 +20,14 @@ namespace Support.Shared
 
         public Ticket() { }
 
-        public Ticket(ETicketType Type, ETicketStatus Status,
+        public Ticket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, string Description, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
         {
             this.Id = Guid.NewGuid().ToString();
             this.Type = Type;
             this.Status = Status;
+            this.Priority = Priority;
             this.Title = Title;
             this.Description = Description;
             this.Author = Author;
@@ -33,13 +35,14 @@ namespace Support.Shared
             this.LastUpdatedAt = LastUpdatedAt;
         }
 
-        public Ticket(string Id, ETicketType Type, ETicketStatus Status, 
+        public Ticket(string Id, ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, string Description, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
         {
             this.Id = Id;
             this.Type = Type;
             this.Status = Status;
+            this.Priority = Priority;
             this.Title = Title;
             this.Description = Description;
             this.Author = Author;

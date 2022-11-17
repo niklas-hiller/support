@@ -12,20 +12,20 @@ namespace Support.Discord.Models
         public readonly ulong GuildId;
         public ulong? MessageId { get; set; }
 
-        public DiscordTicket(ETicketType Type, ETicketStatus Status,
+        public DiscordTicket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, string Description, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt,
             ulong GuildId) :
-                base(Type, Status, Title, Description, Author, CreatedAt, LastUpdatedAt)
+                base(Type, Status, Priority, Title, Description, Author, CreatedAt, LastUpdatedAt)
         {
             this.GuildId = GuildId;
         }
 
-        public DiscordTicket(string Id, ETicketType Type, ETicketStatus Status,
+        public DiscordTicket(string Id, ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, string Description, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt,
             ulong GuildId): 
-                base(Id, Type, Status, Title, Description, Author, CreatedAt, LastUpdatedAt)
+                base(Id, Type, Status, Priority, Title, Description, Author, CreatedAt, LastUpdatedAt)
         {
             this.GuildId = GuildId;
         }
@@ -34,12 +34,13 @@ namespace Support.Discord.Models
         {
             this.Type = ticket.Type;
             this.Status = ticket.Status;
+            this.Priority = ticket.Priority;
             this.Title = ticket.Title;
             this.Description = ticket.Description;
             this.Author = ticket.Author;
             this.LastUpdatedAt = ticket.LastUpdatedAt;
         }
 
-        public Ticket Downgrade() => new Ticket(Id, Type, Status, Title, Description, Author, CreatedAt, LastUpdatedAt);
+        public Ticket Downgrade() => new Ticket(Id, Type, Status, Priority, Title, Description, Author, CreatedAt, LastUpdatedAt);
     }
 }

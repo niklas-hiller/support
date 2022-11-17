@@ -58,7 +58,7 @@ namespace Support.Discord.Services
             ulong guildId = modal.GuildId ?? 0;
 
             DiscordTicket ticket = new DiscordTicket(
-                Type: type, Status: ETicketStatus.Open,
+                Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
                 Title: name, Description: description, Author: modal.User.ToString(),
                 CreatedAt: DateTimeOffset.Now, DateTimeOffset.Now, guildId);
 
@@ -94,13 +94,14 @@ namespace Support.Discord.Services
             }
         }
 
-        public static async Task UpdateTicket(string ticketId, ETicketStatus newStatus)
+        public static async Task UpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
         {
             // Receive ticket from hub
             try
             {
                 DiscordTicket discordTicket = tickets.First(x => x.Id == ticketId);
                 discordTicket.Status = newStatus;
+                discordTicket.Priority = newPriority;
                 discordTicket.LastUpdatedAt = DateTimeOffset.Now;
                 await TransmitTicket(discordTicket);
             }
@@ -110,30 +111,90 @@ namespace Support.Discord.Services
             }
         }
 
-        private static MessageComponent GetTicketStatusComponent(ETicketStatus status)
+        private static void AttachTicketStatusComponent(ComponentBuilder builder, ETicketStatus status)
         {
             switch (status)
             {
+                case ETicketStatus.Unknown:
+                    builder.WithButton("Status: Unknown", customId: "ticket-status-unknown",
+                        style: ButtonStyle.Secondary);
+                    break;
                 case ETicketStatus.Open:
-                    return new ComponentBuilder()
-                        .WithButton("Status: Open", customId: "ticket-status", style: ButtonStyle.Secondary, disabled: true)
-                        .Build();
+                    builder.WithButton("Status: Open", customId: "ticket-status-open",
+                        style: ButtonStyle.Secondary);
+                    break;
                 case ETicketStatus.In_Progress:
-                    return new ComponentBuilder()
-                        .WithButton("Status: In Progress", customId: "ticket-status", style: ButtonStyle.Primary, disabled: true)
-                        .Build();
+                    builder.WithButton("Status: In Progress", customId: "ticket-status-inprogress",
+                        style: ButtonStyle.Primary);
+                    break;
                 case ETicketStatus.Done:
-                    return new ComponentBuilder()
-                        .WithButton("Status: Done", customId: "ticket-status", style: ButtonStyle.Success, disabled: true)
-                        .Build();
+                    builder.WithButton("Status: Done", customId: "ticket-status-done",
+                        style: ButtonStyle.Success);
+                    break;
                 case ETicketStatus.Declined:
-                    return new ComponentBuilder()
-                        .WithButton("Status: Declined", customId: "ticket-status", style: ButtonStyle.Danger, disabled: true)
-                        .Build();             
+                    builder.WithButton("Status: Declined", customId: "ticket-status-declined",
+                        style: ButtonStyle.Danger);
+                    break;         
             }
-            return new ComponentBuilder()
-                .WithButton("Status: Unknown", customId: "ticket-status", style: ButtonStyle.Secondary, disabled: true)
-                .Build();
+        }
+
+        private static void AttachTicketPriorityComponent(ComponentBuilder builder, ETicketPriority priority)
+        {
+            switch (priority)
+            {
+                case ETicketPriority.Unknown:
+                    builder.WithButton("Priority: Unknown", customId: "ticket-priority-unknown",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Trivial:
+                    builder.WithButton("Priority: Trivial", customId: "ticket-priority-trivial",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Minor:
+                    builder.WithButton("Priority: Minor", customId: "ticket-priority-minor",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Lowest:
+                    builder.WithButton("Priority: Lowest", customId: "ticket-priority-lowest",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Low:
+                    builder.WithButton("Priority: Low", customId: "ticket-priority-low",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Medium:
+                    builder.WithButton("Priority: Medium", customId: "ticket-priority-medium",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.High:
+                    builder.WithButton("Priority: High", customId: "ticket-priority-high",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Highest:
+                    builder.WithButton("Priority: Highest", customId: "ticket-priority-highest",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Major:
+                    builder.WithButton("Priority: Major", customId: "ticket-priority-major",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Critical:
+                    builder.WithButton("Priority: Critical", customId: "ticket-priority-critical",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+                case ETicketPriority.Blocker:
+                    builder.WithButton("Priority: Blocker", customId: "ticket-priority-blocker",
+                        style: ButtonStyle.Secondary, emote: EmojiService.GetPriorityEmoji(priority));
+                    break;
+            }
+        }
+
+        private static MessageComponent GetTicketComponents(DiscordTicket ticket)
+        {
+            var builder = new ComponentBuilder();
+            AttachTicketStatusComponent(builder, ticket.Status);
+            AttachTicketPriorityComponent(builder, ticket.Priority);
+            return builder.Build();
         }
 
         private static Embed GetTicketEmbedded(DiscordTicket ticket)
@@ -197,12 +258,14 @@ namespace Support.Discord.Services
                 await channel.ModifyMessageAsync((ulong)ticket.MessageId, x =>
                 {
                     x.Embed = GetTicketEmbedded(ticket);
-                    x.Components = GetTicketStatusComponent(ticket.Status);
+                    x.Components = GetTicketComponents(ticket);
                 });
             } 
             else
             {
-                var newTicketMessage = await channel.SendMessageAsync(embed: GetTicketEmbedded(ticket), components: GetTicketStatusComponent(ticket.Status));
+                var newTicketMessage = await channel.SendMessageAsync(
+                    embed: GetTicketEmbedded(ticket), 
+                    components: GetTicketComponents(ticket));
                 ticket.MessageId = newTicketMessage.Id;
             }
         }

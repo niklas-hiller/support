@@ -2,9 +2,9 @@
 {
     public enum ETicketType
     {
-        Bug = 0,
-        Request = 1,
-        Unknown = 2,
+        Unknown,
+        Bug,
+        Request,
     }
 
     public static class TicketType

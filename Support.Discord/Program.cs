@@ -30,7 +30,7 @@ namespace Support.Discord
 
             client.SlashCommandExecuted += SlashCommandHandler;
 
-            // client.ButtonExecuted += ButtonHandler;
+            client.ButtonExecuted += ButtonHandler;
 
             client.ModalSubmitted += ModalHandler;
 
@@ -79,7 +79,8 @@ namespace Support.Discord
                 .WithName("update-ticket") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
                 .WithDescription("Updates a ticket.")  // Descriptions can have a max length of 100. 
                 .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
-                .AddOption("status", ApplicationCommandOptionType.String, "The status you wish to update the ticket to", isRequired: true);
+                .AddOption("status", ApplicationCommandOptionType.String, "The status you wish to update the ticket to", isRequired: true)
+                .AddOption("priority", ApplicationCommandOptionType.String, "The priority you wish to update the ticket to", isRequired: true);
 
             // Let's do our global command
             //var globalCommand = new SlashCommandBuilder();
@@ -178,9 +179,12 @@ namespace Support.Discord
             var statusStr = command.Data.Options.First(x => x.Name == "status").Value.ToString() ?? "";
             var status = TicketStatus.FromString(statusStr);
 
+            var priorityStr = command.Data.Options.First(x => x.Name == "priority").Value.ToString() ?? "";
+            var priority = TicketPriority.FromString(priorityStr);
+
             var ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
 
-            await SupportService.UpdateTicket(ticketId, status);
+            await SupportService.UpdateTicket(ticketId, status, priority);
             await command.RespondAsync("Done");
         }
 
@@ -197,22 +201,60 @@ namespace Support.Discord
             }
         }
 
-        //public async Task ButtonHandler(SocketMessageComponent component)
-        //{
-        //    // We can now check for our custom id
-        //    switch (component.Data.CustomId)
-        //    {
-        //        // Since we set our buttons custom id as 'custom-id', we can check for it like this:
-        //        case "correct":
-        //            // Lets respond by sending a message saying they clicked the button
-        //            await component.RespondAsync($"Successfully confirmed your identity!");
-        //            break;
-        //        case "incorrect":
-        //            // Lets respond by sending a message saying they clicked the button
-        //            await component.RespondAsync($"Could not confirm your identity (Invalid Number)");
-        //            break;
-        //    }
-        //}
+        public async Task ButtonHandler(SocketMessageComponent component)
+        {
+            switch (component.Data.CustomId)
+            {
+                case "ticket-status-unknown":
+                    await component.RespondAsync($"Ticket Status 'Unknown' is exception status when the server couldn't retrieve the status", ephemeral: true);
+                    break;
+                case "ticket-status-open":
+                    await component.RespondAsync($"Ticket Status 'Open' means that the ticket was created, but is nobody is working on it.", ephemeral: true);
+                    break;
+                case "ticket-status-inprogress":
+                    await component.RespondAsync($"Ticket Status 'In Progress' means that someone is working on the ticket.", ephemeral: true);
+                    break;
+                case "ticket-status-done":
+                    await component.RespondAsync($"Ticket Status 'Done' means the content of the ticket was finished.", ephemeral: true);
+                    break;
+                case "ticket-status-declined":
+                    await component.RespondAsync($"Ticket Status 'Declined' means the ticket will not be done.", ephemeral: true);
+                    break;
+                case "ticket-priority-unknown":
+                    await component.RespondAsync($"Ticket Priority 'Unknown' means nobody assigned a priority to this ticket yet.", ephemeral: true);
+                    break;
+                case "ticket-priority-trivial":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-minor":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-lowest":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-low":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-medium":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-high":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-highest":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-major":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-critical":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+                case "ticket-priority-blocker":
+                    await component.RespondAsync($"Ticket Priorities are in order: Blocker > Major > Highest > High > Medium > Low > Lowest > Minor > Trivial", ephemeral: true);
+                    break;
+            }
+        }
 
         private async Task HandleBugCommand(SocketSlashCommand command)
         {

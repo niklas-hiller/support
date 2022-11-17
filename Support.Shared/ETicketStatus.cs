@@ -2,11 +2,11 @@
 {
     public enum ETicketStatus
     {
-        Open = 0,
-        In_Progress = 1,
-        Done = 2,
-        Declined = 3,
-        Unknown = 4,
+        Unknown,
+        Open,
+        In_Progress,
+        Done,
+        Declined,
     }
 
     public static class TicketStatus
