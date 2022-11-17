@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using Microsoft.AspNetCore.SignalR.Client;
 using Support.Discord.Models;
 using Support.Shared;
+using NLog;
 
 namespace Support.Discord.Services
 {
@@ -13,6 +14,7 @@ namespace Support.Discord.Services
         private static readonly Dictionary<ulong, ulong> supportChannels = new Dictionary<ulong, ulong>();
         private static HubConnection hubConnection;
         private static readonly Session session = new Session() { GroupName = SessionGroups.Listener, Name = "Discord" };
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public static async Task ConnectHub()
         {
@@ -30,8 +32,8 @@ namespace Support.Discord.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Failed to receive ticket");
-                        Console.WriteLine(ex);
+                        logger.Error("Failed to receive ticket");
+                        logger.Error(ex);
                     }
                 });
             }
@@ -81,14 +83,14 @@ namespace Support.Discord.Services
             // Receive ticket from hub
             try
             {
-                Console.WriteLine($"Ticket ID: {ticket.Id}");
+                logger.Info($"Ticket ID: {ticket.Id}");
                 DiscordTicket discordTicket = tickets.First(x => x.Id == ticket.Id);
                 discordTicket.Update(ticket);
                 await UpdateTicket(discordTicket);
             } 
             catch (ArgumentNullException ex)
             {
-                Console.WriteLine($"Tried to receive unknown ticket. {ex}");
+                logger.Error($"Tried to receive unknown ticket. {ex}");
             }
         }
 
@@ -104,7 +106,7 @@ namespace Support.Discord.Services
             }
             catch (ArgumentNullException ex)
             {
-                Console.WriteLine($"Tried to receive unknown ticket. {ex}");
+                logger.Warn($"Tried to receive unknown ticket. {ex}");
             }
         }
 

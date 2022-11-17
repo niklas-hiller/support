@@ -2,6 +2,8 @@
 using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
+using NLog.Config;
+using NLog;
 using Support.Discord.Models;
 using Support.Discord.Services;
 using Support.Shared;
@@ -14,10 +16,14 @@ namespace Support.Discord
 
         public static readonly DiscordSocketClient client = new DiscordSocketClient();
 
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         private const ulong OfficialGuildId = 909435376857391135;
 
         public async Task MainAsync()
         {
+            LogManager.Configuration = new XmlLoggingConfiguration("NLog.config");
+
             client.Log += Log;
 
             client.Ready += Client_Ready;
@@ -42,7 +48,7 @@ namespace Support.Discord
 
         private Task Log(LogMessage msg)
         {
-            Console.WriteLine(msg.ToString());
+            logger.Info(msg.ToString());
             return Task.CompletedTask;
         }
 
@@ -100,7 +106,7 @@ namespace Support.Discord
                 var json = JsonConvert.SerializeObject(exception.Errors, Formatting.Indented);
 
                 // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                Console.WriteLine(json);
+                logger.Info(json);
             }
 
             // await HandleRegularUpdateEvent();

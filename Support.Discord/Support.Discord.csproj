@@ -10,10 +10,15 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="3.8.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0" />
+    <PackageReference Include="NLog" Version="5.0.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Support.Shared\Support.Shared.csproj" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(ProjectDir)Resources\* $(ProjectDir)$(OutDir)" />
+  </Target>
 
 </Project>
