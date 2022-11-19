@@ -7,6 +7,7 @@ using NLog;
 
 namespace Support.Discord.Services
 {
+    [Obsolete]
     internal static class UpdateService
     {
         private static readonly DiscordSocketClient client = Program.client;

@@ -21,6 +21,7 @@ public class UpdateHub : Hub
         // await Clients.OthersInGroup(session.GroupName).SendAsync(ServerBroadcasts.SessionConnected, session);
     }
 
+    [Obsolete]
     public async Task SendUpdateEvent(Session session, UpdateEvent updateEvent)
     {
         logger.LogInformation($"Received Update Event from {session.Name}");

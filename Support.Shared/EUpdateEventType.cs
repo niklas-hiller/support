@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Support.Shared
 {
+    [Obsolete]
     public enum EUpdateEventType
     {
         Release,
