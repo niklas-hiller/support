@@ -58,29 +58,51 @@ namespace Support.Discord
 
             ulong guildId = configuration.RootGuildId;
 
-            var guildCommand = new SlashCommandBuilder()
-                .WithName("list-roles") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Lists all roles of a user.")  // Descriptions can have a max length of 100.
-                .AddOption("user", ApplicationCommandOptionType.User, "The users whos roles you want to be listed", isRequired: true);
-
-            var guildCommand2 = new SlashCommandBuilder()
+            var guildCommand1 = new SlashCommandBuilder()
                 .WithName("initiate") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
                 .WithDescription("Initiates the support channel if it does not exist yet.");  // Descriptions can have a max length of 100.
 
+            var guildCommand2 = new SlashCommandBuilder()
+                .WithName("create-ticket")
+                .WithDescription("Creates a new ticket.")
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("type")
+                    .WithDescription("The type of ticket you want to create")
+                    .WithRequired(true)
+                    .AddChoice(ETicketType.Bug.ToString(), ETicketType.Bug.ToString())
+                    .AddChoice(ETicketType.Request.ToString(), ETicketType.Request.ToString())
+                    .WithType(ApplicationCommandOptionType.String)
+                );
+
             var guildCommand3 = new SlashCommandBuilder()
-                .WithName("report-bug") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Creates a bug ticket.");  // Descriptions can have a max length of 100.
-
-            var guildCommand4 = new SlashCommandBuilder()
-                .WithName("report-request") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Creates a request ticket.");  // Descriptions can have a max length of 100.
-
-            var guildCommand5 = new SlashCommandBuilder()
                 .WithName("update-ticket") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Updates a ticket. (Test Command!)")  // Descriptions can have a max length of 100. 
+                .WithDescription("Updates a ticket.")  // Descriptions can have a max length of 100. 
                 .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
-                .AddOption("status", ApplicationCommandOptionType.String, "The status you wish to update the ticket to", isRequired: true)
-                .AddOption("priority", ApplicationCommandOptionType.String, "The priority you wish to update the ticket to", isRequired: true);
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("status")
+                    .WithDescription("The status you wish to update the ticket to")
+                    .WithRequired(true)
+                    .AddChoice(ETicketStatus.Open.ToString(), ETicketStatus.Open.ToString())
+                    .AddChoice(ETicketStatus.In_Progress.ToString().Replace("_", " "), ETicketStatus.In_Progress.ToString().Replace("_", ""))
+                    .AddChoice(ETicketStatus.Done.ToString(), ETicketStatus.Done.ToString())
+                    .AddChoice(ETicketStatus.Declined.ToString(), ETicketStatus.Declined.ToString())
+                    .WithType(ApplicationCommandOptionType.String)
+                )
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("priority")
+                    .WithDescription("The priority you wish to update the ticket to")
+                    .WithRequired(true)
+                    .AddChoice(ETicketPriority.Trivial.ToString(), ETicketPriority.Trivial.ToString())
+                    .AddChoice(ETicketPriority.Minor.ToString(), ETicketPriority.Minor.ToString())
+                    .AddChoice(ETicketPriority.Lowest.ToString(), ETicketPriority.Lowest.ToString())
+                    .AddChoice(ETicketPriority.Low.ToString(), ETicketPriority.Low.ToString())
+                    .AddChoice(ETicketPriority.Medium.ToString(), ETicketPriority.Medium.ToString())
+                    .AddChoice(ETicketPriority.High.ToString(), ETicketPriority.High.ToString())
+                    .AddChoice(ETicketPriority.Highest.ToString(), ETicketPriority.Highest.ToString())
+                    .AddChoice(ETicketPriority.Major.ToString(), ETicketPriority.Major.ToString())
+                    .AddChoice(ETicketPriority.Critical.ToString(), ETicketPriority.Critical.ToString())
+                    .WithType(ApplicationCommandOptionType.String)
+                );
 
             // Let's do our global command
             // var globalCommand = new SlashCommandBuilder();
@@ -90,11 +112,9 @@ namespace Support.Discord
             try
             {
                 // Now that we have our builder, we can call the CreateApplicationCommandAsync method to make our slash command.
-                await client.Rest.CreateGuildCommand(guildCommand.Build(), guildId);
+                await client.Rest.CreateGuildCommand(guildCommand1.Build(), guildId);
                 await client.Rest.CreateGuildCommand(guildCommand2.Build(), guildId);
                 await client.Rest.CreateGuildCommand(guildCommand3.Build(), guildId);
-                await client.Rest.CreateGuildCommand(guildCommand4.Build(), guildId);
-                await client.Rest.CreateGuildCommand(guildCommand5.Build(), guildId);
 
                 // With global commands we don't need the guild.
                 // await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
@@ -120,17 +140,20 @@ namespace Support.Discord
             logger.Info($"User executed {command.Data.Name}");
             switch (command.Data.Name)
             {
-                case "list-roles":
-                    await HandleListRoleCommand(command);
-                    break;
                 case "initiate":
                     await HandleInitiateCommand(command);
                     break;
-                case "report-bug":
-                    await HandleBugCommand(command);
-                    break;
-                case "report-request":
-                    await HandleRequestCommand(command);
+                case "create-ticket":
+                    ETicketType type = TicketType.FromString(command.Data.Options.First(x => x.Name == "type").Value.ToString());
+                    switch (type)
+                    {
+                        case ETicketType.Bug:
+                            await HandleBugCommand(command);
+                            break;
+                        case ETicketType.Request:
+                            await HandleRequestCommand(command);
+                            break;
+                    }
                     break;
                 case "update-ticket":
                     await HandleUpdateCommand(command);
@@ -154,7 +177,7 @@ namespace Support.Discord
             var ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
 
             await SupportService.UpdateTicket(ticketId, status, priority);
-            await command.RespondAsync("Done");
+            await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
         }
 
         public async Task ModalHandler(SocketModal modal)
@@ -248,25 +271,6 @@ namespace Support.Discord
                 .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
 
             await command.RespondWithModalAsync(modal.Build());
-        }
-
-        private async Task HandleListRoleCommand(SocketSlashCommand command)
-        {
-            // We need to extract the user parameter from the command. since we only have one option and it's required, we can just use the first option.
-            var guildUser = (SocketGuildUser)command.Data.Options.First().Value;
-
-            // We remove the everyone role and select the mention of each role.
-            var roleList = string.Join(",\n", guildUser.Roles.Where(x => !x.IsEveryone).Select(x => x.Mention));
-
-            var embedBuiler = new EmbedBuilder()
-                .WithAuthor(guildUser.ToString(), guildUser.GetAvatarUrl() ?? guildUser.GetDefaultAvatarUrl())
-                .WithTitle("Roles")
-                .WithDescription(roleList)
-                .WithColor(Color.Green)
-                .WithCurrentTimestamp();
-
-            // Now, Let's respond with the embed.
-            await command.RespondAsync(embed: embedBuiler.Build());
         }
     }
 }
