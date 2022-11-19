@@ -27,11 +27,4 @@ public class SupportHub : Hub
         logger.LogInformation($"Sending {ticket.Title} to all sessions in group '{SessionGroups.Listener}'");
         await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicketUpdate, ticket);
     }
-
-    public async Task SendUpdateEvent(Session session, UpdateEvent updateEvent)
-    {
-        logger.LogInformation($"Received Update Event from {session.Name}");
-        logger.LogInformation($"Sending Update Event to all sessions in group '{SessionGroups.Listener}'");
-        await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendUpdateEvent, updateEvent);
-    }
 }
