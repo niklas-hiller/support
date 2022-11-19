@@ -13,9 +13,9 @@
         {
             switch (type.ToLower().Replace(" ", ""))
             {
-                case "open":
+                case "bug":
                     return ETicketType.Bug;
-                case "inprogress":
+                case "request":
                     return ETicketType.Request;
             }
             return ETicketType.Unknown;
