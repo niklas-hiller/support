@@ -13,7 +13,7 @@ namespace Support.Shared
         public ETicketStatus Status { get; set; }
         public ETicketPriority Priority { get; set; }
         public string Title { get; set; }
-        public string Description { get; set; }
+        public Dictionary<string, string> CustomFields { get; set; }
         public string Author { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset LastUpdatedAt { get; set; }
@@ -21,7 +21,7 @@ namespace Support.Shared
         public Ticket() { }
 
         public Ticket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
-            string Title, string Description, string Author,
+            string Title, Dictionary<string, string> CustomFields, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
         {
             this.Id = Guid.NewGuid().ToString();
@@ -29,14 +29,14 @@ namespace Support.Shared
             this.Status = Status;
             this.Priority = Priority;
             this.Title = Title;
-            this.Description = Description;
+            this.CustomFields = CustomFields;
             this.Author = Author;
             this.CreatedAt = CreatedAt;
             this.LastUpdatedAt = LastUpdatedAt;
         }
 
         public Ticket(string Id, ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
-            string Title, string Description, string Author,
+            string Title, Dictionary<string, string> CustomFields, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
         {
             this.Id = Id;
@@ -44,7 +44,7 @@ namespace Support.Shared
             this.Status = Status;
             this.Priority = Priority;
             this.Title = Title;
-            this.Description = Description;
+            this.CustomFields = CustomFields;
             this.Author = Author;
             this.CreatedAt = CreatedAt;
             this.LastUpdatedAt = LastUpdatedAt;

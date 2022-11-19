@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Support.Discord.Models;
 using Support.Shared;
 using NLog;
+using System;
 
 namespace Support.Discord.Services
 {
@@ -36,14 +37,42 @@ namespace Support.Discord.Services
                         logger.Error(ex);
                     }
                 });
+
+                await hubConnection.StartAsync();
+
+                await hubConnection.SendAsync(
+                    ServerBroadcasts.SessionConnected,
+                    session
+                );
             }
+        }
 
-            await hubConnection.StartAsync();
-
-            await hubConnection.SendAsync(
-                ServerBroadcasts.SessionConnected,
-                session
-            );
+        public static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
+        {
+            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            switch (type)
+            {
+                case ETicketType.Request:
+                    string description = components
+                        .First(x => x.CustomId == "description").Value;
+                    dictionary.Add("Description", description);
+                    break;
+                case ETicketType.Bug:
+                    string environment = components
+                        .First(x => x.CustomId == "environment").Value;
+                    string steps = components
+                        .First(x => x.CustomId == "steps").Value;
+                    string currentBehaviour = components
+                        .First(x => x.CustomId == "currentBehaviour").Value;
+                    string expectedBehaviour = components
+                        .First(x => x.CustomId == "expectedBehaviour").Value;
+                    dictionary.Add("Environment", environment);
+                    dictionary.Add("Steps to reproduce", steps);
+                    dictionary.Add("Current Behaviour", currentBehaviour);
+                    dictionary.Add("Expected Behaviour", expectedBehaviour);
+                    break;
+            }
+            return dictionary;
         }
 
         public static async Task CreateTicket(SocketModal modal, ETicketType type)
@@ -53,13 +82,13 @@ namespace Support.Discord.Services
 
             string name = components
                 .First(x => x.CustomId == "name").Value;
-            string description = components
-                .First(x => x.CustomId == "description").Value;
+            Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, type);
+
             ulong guildId = modal.GuildId ?? 0;
 
             DiscordTicket ticket = new DiscordTicket(
                 Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
-                Title: name, Description: description, Author: modal.User.ToString(),
+                Title: name, CustomFields: customFields, Author: modal.User.ToString(),
                 CreatedAt: DateTimeOffset.Now, DateTimeOffset.Now, guildId);
 
             tickets.Add(ticket);
@@ -197,6 +226,14 @@ namespace Support.Discord.Services
             return builder.Build();
         }
 
+        public static void AttachTicketCustomFields(EmbedBuilder builder, DiscordTicket ticket)
+        {
+            foreach(KeyValuePair<string, string> entry in ticket.CustomFields)
+            {
+                builder.AddField(entry.Key, entry.Value);
+            }
+        }
+
         private static Embed GetTicketEmbedded(DiscordTicket ticket)
         {
             string name_prefix = "Unknown";
@@ -210,16 +247,18 @@ namespace Support.Discord.Services
                     break;
             }
 
-            return new EmbedBuilder()
+            var builder = new EmbedBuilder();
+            builder
                 .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
                 .WithTitle($"[{name_prefix}] {ticket.Title}")
                 .WithDescription(
-                $"{ticket.Description}\n\n" +
-                $"**Created At: <t:{ticket.CreatedAt.ToUnixTimeSeconds()}:R>**\n" +
-                $"**Last Updated At: <t:{ticket.LastUpdatedAt.ToUnixTimeSeconds()}:R>**")
+                $"**Reporter:** {ticket.Author}\n" + 
+                $"**Created At:** <t:{ticket.CreatedAt.ToUnixTimeSeconds()}:R>\n" +
+                $"**Last Updated At:** <t:{ticket.LastUpdatedAt.ToUnixTimeSeconds()}:R>")
                 .WithColor(Color.Green)
-                .WithCurrentTimestamp()
-                .Build();
+                .WithCurrentTimestamp();
+            AttachTicketCustomFields(builder, ticket);
+            return builder.Build();
         }
 
         private static SocketTextChannel? GetSupportChannel(SocketGuild guild)

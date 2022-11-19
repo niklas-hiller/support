@@ -55,6 +55,7 @@ namespace Support.Discord
         public async Task Client_Ready()
         {
             await SupportService.ConnectHub();
+            await UpdateService.ConnectHub();
 
             ulong guildId = configuration.RootGuildId;
 
@@ -77,15 +78,15 @@ namespace Support.Discord
 
             var guildCommand5 = new SlashCommandBuilder()
                 .WithName("update-ticket") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Updates a ticket.")  // Descriptions can have a max length of 100. 
+                .WithDescription("Updates a ticket. (Test Command!)")  // Descriptions can have a max length of 100. 
                 .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
                 .AddOption("status", ApplicationCommandOptionType.String, "The status you wish to update the ticket to", isRequired: true)
                 .AddOption("priority", ApplicationCommandOptionType.String, "The priority you wish to update the ticket to", isRequired: true);
 
             // Let's do our global command
-            //var globalCommand = new SlashCommandBuilder();
-            //globalCommand.WithName("first-global-command");
-            //globalCommand.WithDescription("This is my first global slash command");
+            // var globalCommand = new SlashCommandBuilder();
+            // globalCommand.WithName("first-global-command");
+            // globalCommand.WithDescription("This is my first global slash command");
 
             try
             {
@@ -97,7 +98,7 @@ namespace Support.Discord
                 await client.Rest.CreateGuildCommand(guildCommand5.Build(), guildId);
 
                 // With global commands we don't need the guild.
-                //await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
+                // await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
                 // Using the ready event is a simple implementation for the sake of the example. Suitable for testing and development.
                 // For a production bot, it is recommended to only run the CreateGlobalApplicationCommandAsync() once for each command.
             }
@@ -114,41 +115,10 @@ namespace Support.Discord
 
         }
 
-        //private async Task HandleRegularUpdateEvent()
-        //{
-        //    DateTime nextUpdate = GetNextWeekday(DateTime.Today, DayOfWeek.Tuesday);
-
-        //    const ulong guildId = OfficialGuildId;
-
-        //    var guild = client.GetGuild(guildId);
-
-        //    var guildEvents = await guild.GetEventsAsync();
-
-        //    foreach (var guildEvent in guildEvents)
-        //    {
-        //        if (guildEvent.Name == "Release 0.1.0") return;
-        //    }
-
-        //    var newGuildEvent = await guild.CreateEventAsync(
-        //        name: "Release 0.1.0",
-        //        startTime: nextUpdate,
-        //        endTime: nextUpdate.AddDays(1).AddTicks(-1),
-        //        type: GuildScheduledEventType.External,
-        //        description: "Regular Update to 0.1.0",
-        //        location: "Official Server",
-        //        coverImage: new Image("images/cover.png"));
-        //}
-
-        public static DateTime GetNextWeekday(DateTime start, DayOfWeek day)
-        {
-            // The (... + 7) % 7 ensures we end up with a value in the range [0, 6]
-            int daysToAdd = ((int)day - (int)start.DayOfWeek + 7) % 7;
-            return start.AddDays(daysToAdd);
-        }
-
         private async Task SlashCommandHandler(SocketSlashCommand command)
         {
             // Let's add a switch statement for the command name so we can handle multiple commands in one event.
+            logger.Info($"User executed {command.Data.Name}");
             switch (command.Data.Name)
             {
                 case "list-roles":
@@ -261,8 +231,11 @@ namespace Support.Discord
             var modal = new ModalBuilder()
                 .WithTitle("Create Ticket (Bug)")
                 .WithCustomId("bug-modal")
-                .AddTextInput("Name", "name", placeholder: "Please a short meaningful name for the ticket.", required: true)
-                .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
+                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
+                .AddTextInput("Environment", "environment", placeholder: "The environment information during the bug occurence, i.e. Software Version.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Steps to reproduce", "steps", placeholder: "Steps to reproduce written down as bullet points.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Current Behaviour", "currentBehaviour", placeholder: "The behaviour that currently occurs.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Expected Behaviour", "expectedBehaviour", placeholder: "The behaviour you would expect to occur.", style: TextInputStyle.Paragraph, required: true);
 
             await command.RespondWithModalAsync(modal.Build());
         }
@@ -272,7 +245,7 @@ namespace Support.Discord
             var modal = new ModalBuilder()
                 .WithTitle("Create Ticket (Request)")
                 .WithCustomId("request-modal")
-                .AddTextInput("Name", "name", placeholder: "Please a short meaningful name for the ticket.", required: true)
+                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
                 .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
 
             await command.RespondWithModalAsync(modal.Build());

@@ -10,5 +10,6 @@ namespace Support.Shared
     {
         public const string SessionConnected = "SessionConnected";
         public const string SendTicketUpdate = "SendTicketUpdate";
+        public const string SendUpdateEvent = "SendUpdateEvent";
     }
 }

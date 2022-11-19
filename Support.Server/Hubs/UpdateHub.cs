@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Support.Server.Hubs;
 
-public class SupportHub : Hub
+public class UpdateHub : Hub
 {
     private readonly ILogger logger;
 
-    public SupportHub(ILogger<SupportHub> logger)
+    public UpdateHub(ILogger<UpdateHub> logger)
     {
         this.logger = logger;
     }
@@ -19,13 +19,6 @@ public class SupportHub : Hub
         logger.LogInformation($"{session.Name} connected as {session.GroupName}");
 
         // await Clients.OthersInGroup(session.GroupName).SendAsync(ServerBroadcasts.SessionConnected, session);
-    }
-
-    public async Task SendTicketUpdate(Session session, Ticket ticket)
-    {
-        logger.LogInformation($"Received {ticket.Title} from {session.Name}");
-        logger.LogInformation($"Sending {ticket.Title} to all sessions in group '{SessionGroups.Listener}'");
-        await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicketUpdate, ticket);
     }
 
     public async Task SendUpdateEvent(Session session, UpdateEvent updateEvent)

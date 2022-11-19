@@ -15,5 +15,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapHub<SupportHub>("Support");
+app.MapHub<UpdateHub>("Update");
 
 app.Run();
