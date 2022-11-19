@@ -256,7 +256,8 @@ namespace Support.Discord.Services
                 $"**Created At:** <t:{ticket.CreatedAt.ToUnixTimeSeconds()}:R>\n" +
                 $"**Last Updated At:** <t:{ticket.LastUpdatedAt.ToUnixTimeSeconds()}:R>")
                 .WithColor(Color.Green)
-                .WithCurrentTimestamp();
+                .WithCurrentTimestamp()
+                .WithFooter($"Ticket Id: {ticket.Id}");
             AttachTicketCustomFields(builder, ticket);
             return builder.Build();
         }
