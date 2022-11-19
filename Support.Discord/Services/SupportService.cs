@@ -280,7 +280,7 @@ namespace Support.Discord.Services
             {
                 supportChannels.Add((ulong)command.GuildId, channel.Id);
             }
-            await command.RespondAsync("Successfully initiated support channel.");
+            await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
         }
 
         private static async Task UpdateTicket(DiscordTicket ticket)
