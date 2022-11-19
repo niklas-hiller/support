@@ -2,8 +2,8 @@
 using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using NLog.Config;
 using NLog;
+using NLog.Config;
 using Support.Discord.Models;
 using Support.Discord.Services;
 using Support.Shared;

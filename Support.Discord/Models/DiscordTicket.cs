@@ -19,7 +19,7 @@ namespace Support.Discord.Models
         public DiscordTicket(string Id, ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, Dictionary<string, string> CustomFields, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt,
-            ulong GuildId): 
+            ulong GuildId) :
                 base(Id, Type, Status, Priority, Title, CustomFields, Author, CreatedAt, LastUpdatedAt)
         {
             this.GuildId = GuildId;

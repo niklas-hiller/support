@@ -1,5 +1,5 @@
-﻿using Support.Shared;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
+using Support.Shared;
 
 namespace Support.Server.Hubs;
 

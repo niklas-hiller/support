@@ -1,10 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.SignalR.Client;
+using NLog;
 using Support.Discord.Models;
 using Support.Shared;
-using NLog;
-using System;
 
 namespace Support.Discord.Services
 {
@@ -116,7 +115,7 @@ namespace Support.Discord.Services
                 DiscordTicket discordTicket = tickets.First(x => x.Id == ticket.Id);
                 discordTicket.Update(ticket);
                 await UpdateTicket(discordTicket);
-            } 
+            }
             catch (ArgumentNullException ex)
             {
                 logger.Error($"Tried to receive unknown ticket. {ex}");
@@ -163,7 +162,7 @@ namespace Support.Discord.Services
                 case ETicketStatus.Declined:
                     builder.WithButton("Status: Declined", customId: "ticket-status-declined",
                         style: ButtonStyle.Danger);
-                    break;         
+                    break;
             }
         }
 
@@ -228,7 +227,7 @@ namespace Support.Discord.Services
 
         public static void AttachTicketCustomFields(EmbedBuilder builder, DiscordTicket ticket)
         {
-            foreach(KeyValuePair<string, string> entry in ticket.CustomFields)
+            foreach (KeyValuePair<string, string> entry in ticket.CustomFields)
             {
                 builder.AddField(entry.Key, entry.Value);
             }
@@ -252,7 +251,7 @@ namespace Support.Discord.Services
                 .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
                 .WithTitle($"[{name_prefix}] {ticket.Title}")
                 .WithDescription(
-                $"**Reporter:** {ticket.Author}\n" + 
+                $"**Reporter:** {ticket.Author}\n" +
                 $"**Created At:** <t:{ticket.CreatedAt.ToUnixTimeSeconds()}:R>\n" +
                 $"**Last Updated At:** <t:{ticket.LastUpdatedAt.ToUnixTimeSeconds()}:R>")
                 .WithColor(Color.Green)
@@ -300,11 +299,11 @@ namespace Support.Discord.Services
                     x.Embed = GetTicketEmbedded(ticket);
                     x.Components = GetTicketComponents(ticket);
                 });
-            } 
+            }
             else
             {
                 var newTicketMessage = await channel.SendMessageAsync(
-                    embed: GetTicketEmbedded(ticket), 
+                    embed: GetTicketEmbedded(ticket),
                     components: GetTicketComponents(ticket));
                 ticket.MessageId = newTicketMessage.Id;
             }
