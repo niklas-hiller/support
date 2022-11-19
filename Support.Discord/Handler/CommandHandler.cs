@@ -76,6 +76,12 @@ namespace Support.Discord.Handler
                     );
                 applicationCommandProperties.Add(command3.Build());
 
+                var command4 = new SlashCommandBuilder()
+                    .WithName("force-unwatch")
+                    .WithDescription("Forces a ticket unwatch. Only recommended if normal select menu does not work!")
+                    .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to unwatch", isRequired: true);
+                applicationCommandProperties.Add(command4.Build());
+
                 await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
                 logger.Info("Successfully updated all commands");
 
@@ -101,9 +107,19 @@ namespace Support.Discord.Handler
             switch (command.Data.Name)
             {
                 case "initiate":
+                    if (command.Channel.GetChannelType() == ChannelType.DM)
+                    {
+                        await command.RespondAsync("You can't use this command outside of guilds.");
+                        return;
+                    }
                     await HandleInitiateCommand(command);
                     break;
                 case "create-ticket":
+                    if (command.Channel.GetChannelType() == ChannelType.DM)
+                    {
+                        await command.RespondAsync("You can't use this command outside of guilds.");
+                        return;
+                    }
                     ETicketType type = TicketType.FromString(command.Data.Options.First(x => x.Name == "type").Value.ToString());
                     switch (type)
                     {
@@ -116,17 +132,54 @@ namespace Support.Discord.Handler
                     }
                     break;
                 case "update-ticket":
+                    if (command.Channel.GetChannelType() == ChannelType.DM)
+                    {
+                        await command.RespondAsync("You can't use this command outside of guilds.");
+                        return;
+                    }
                     await HandleUpdateCommand(command);
+                    break;
+                case "force-unwatch":
+                    await HandleForceUnwatchCommand(command);
                     break;
             }
         }
 
-        public static async Task HandleInitiateCommand(SocketSlashCommand command)
+        private static async Task HandleInitiateCommand(SocketSlashCommand command)
         {
             await SupportService.RegisterSupportChannel(command);
         }
 
-        public static async Task HandleUpdateCommand(SocketSlashCommand command)
+        private static async Task HandleForceUnwatchCommand(SocketSlashCommand command)
+        {
+            string ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
+            try
+            {
+                bool success = SupportService.SetWatchTicket(ticketId, command.User.Id, false);
+                if (success)
+                {
+                    await command.RespondAsync(
+                        $"Successfully force removed ticket {ticketId} from your watchlist.\n" +
+                        "Please keep in mind that the select menu of that ticket will still show 'Watching'.", ephemeral: true);
+                }
+                else
+                {
+                    await command.RespondAsync(
+                        $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                        "Reason: You are not watching that ticket. Are you sure you entered the right id?", ephemeral: true);
+                }
+
+            }
+            catch (KeyNotFoundException e)
+            {
+                await command.RespondAsync(
+                    $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                    "Reason: A ticket with the given Id does not exist. Maybe the ticket does not exist anymore?", ephemeral: true);
+            }
+
+        }
+
+        private static async Task HandleUpdateCommand(SocketSlashCommand command)
         {
             var statusStr = command.Data.Options.First(x => x.Name == "status").Value.ToString() ?? "";
             var status = TicketStatus.FromString(statusStr);

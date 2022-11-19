@@ -48,7 +48,15 @@ namespace Support.Discord.Services
 
         public static DiscordTicket? GetTicketById(string ticketId)
         {
-            return tickets.First(x => x.Id == ticketId);
+            try
+            {
+                return tickets.First(x => x.Id == ticketId);
+            }
+            catch (InvalidOperationException e)
+            {
+                logger.Warn($"Couldn't find a ticket with the id {ticketId}");
+                return null;
+            }
         }
 
         public static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
@@ -307,16 +315,43 @@ namespace Support.Discord.Services
             await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
         }
 
+        private static Embed GetWatcherEmbedded(DiscordTicket ticket)
+        {
+            var guild = client.GetGuild(ticket.GuildId);
+            string name_prefix = "Unknown";
+            switch (ticket.Type)
+            {
+                case ETicketType.Bug:
+                    name_prefix = "Bug";
+                    break;
+                case ETicketType.Request:
+                    name_prefix = "Request";
+                    break;
+            }
+
+            var builder = new EmbedBuilder();
+            builder
+                .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
+                .WithTitle($"[Notification] A watched ticket was updated")
+                .WithDescription(
+                $"There was an update in **{guild.Name}** for the ticket **[{name_prefix}] {ticket.Title}**.\n\n" +
+                "**If you no longer want to be informed about the ticket, please select unwatch on the ticket.**\n")
+                .WithColor(Color.Green)
+                .WithCurrentTimestamp()
+                .WithFooter($"Type '/force-unwatch {ticket.Id}' to force a ticket unwatch. Keep in mind that the select menu might display a wrong value then!");
+            return builder.Build();
+        }
+
         private static async Task InformWatchers(DiscordTicket ticket)
         {
             var guild = client.GetGuild(ticket.GuildId);
-            foreach(ulong watcherId in ticket.Watchers)
+            foreach (ulong watcherId in ticket.Watchers)
             {
                 var user = guild.Users.First(x => x.Id == watcherId);
                 if (user == null) return;
                 var dmChannel = await user.CreateDMChannelAsync();
-                await dmChannel.SendMessageAsync($"There was an update in {guild.Name} for the ticket {ticket.Title} ({ticket.Id}).\n\nIf you no longer want to be informed about the ticket, please select unwatch on the ticket.");
-                await dmChannel.CloseAsync();
+                await dmChannel.SendMessageAsync(
+                    embed: GetWatcherEmbedded(ticket));
             }
         }
 
@@ -351,6 +386,23 @@ namespace Support.Discord.Services
             }
 
             await InformWatchers(ticket);
+        }
+
+        public static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
+        {
+            DiscordTicket? ticket = GetTicketById(ticketId);
+            if (ticket == null) throw new KeyNotFoundException();
+            if (isWatching)
+            {
+                if (ticket.Watchers.Contains(userId)) return false;
+                ticket.Watchers.Add(userId);
+            }
+            else
+            {
+                if (!ticket.Watchers.Contains(userId)) return false;
+                ticket.Watchers.Remove(userId);
+            }
+            return true;
         }
     }
 }
