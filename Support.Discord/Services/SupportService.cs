@@ -46,6 +46,11 @@ namespace Support.Discord.Services
             }
         }
 
+        public static DiscordTicket? GetTicketById(string ticketId)
+        {
+            return tickets.First(x => x.Id == ticketId);
+        }
+
         public static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
         {
             Dictionary<string, string> dictionary = new Dictionary<string, string>();
@@ -98,7 +103,7 @@ namespace Support.Discord.Services
         private static async Task TransmitTicket(DiscordTicket discordTicket)
         {
             Ticket ticket = discordTicket.Downgrade();
-            // Send ticket to hub
+            logger.Info($"Sending Ticket {ticket.Id} to server");
             await hubConnection.SendAsync(
                 ServerBroadcasts.SendTicketUpdate,
                 session,
@@ -111,8 +116,8 @@ namespace Support.Discord.Services
             // Receive ticket from hub
             try
             {
-                logger.Info($"Ticket ID: {ticket.Id}");
-                DiscordTicket discordTicket = tickets.First(x => x.Id == ticket.Id);
+                logger.Info($"Received Ticket {ticket.Id} from server");
+                DiscordTicket discordTicket = GetTicketById(ticket.Id);
                 discordTicket.Update(ticket);
                 await UpdateTicket(discordTicket);
             }
@@ -217,11 +222,30 @@ namespace Support.Discord.Services
             }
         }
 
+        private static void AttachTicketWatchComponent(ComponentBuilder builder, string ticketId)
+        {
+            var menuBuilder = new SelectMenuBuilder()
+                .WithCustomId($"watch-menu {ticketId}")
+                .WithMinValues(1)
+                .WithMaxValues(1)
+                .AddOption("Don't Watch", "unwatch", "You will not be informed anytime the ticket gets updated", isDefault: true)
+                .AddOption("Watch", "watch", "You will be informed anytime the ticket gets updated");
+
+            builder.WithSelectMenu(menuBuilder);
+        }
+
         private static MessageComponent GetTicketComponents(DiscordTicket ticket)
         {
             var builder = new ComponentBuilder();
             AttachTicketStatusComponent(builder, ticket.Status);
             AttachTicketPriorityComponent(builder, ticket.Priority);
+            return builder.Build();
+        }
+
+        private static MessageComponent GetTicketMenuComponent(DiscordTicket ticket)
+        {
+            var builder = new ComponentBuilder();
+            AttachTicketWatchComponent(builder, ticket.Id);
             return builder.Build();
         }
 
@@ -283,6 +307,19 @@ namespace Support.Discord.Services
             await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
         }
 
+        private static async Task InformWatchers(DiscordTicket ticket)
+        {
+            var guild = client.GetGuild(ticket.GuildId);
+            foreach(ulong watcherId in ticket.Watchers)
+            {
+                var user = guild.Users.First(x => x.Id == watcherId);
+                if (user == null) return;
+                var dmChannel = await user.CreateDMChannelAsync();
+                await dmChannel.SendMessageAsync($"There was an update in {guild.Name} for the ticket {ticket.Title} ({ticket.Id}).\n\nIf you no longer want to be informed about the ticket, please select unwatch on the ticket.");
+                await dmChannel.CloseAsync();
+            }
+        }
+
         private static async Task UpdateTicket(DiscordTicket ticket)
         {
             var guild = client.GetGuild(ticket.GuildId);
@@ -307,7 +344,13 @@ namespace Support.Discord.Services
                     embed: GetTicketEmbedded(ticket),
                     components: GetTicketComponents(ticket));
                 ticket.MessageId = newTicketMessage.Id;
+                await newTicketMessage.ReplyAsync(
+                    "You can select anytime if you want to watch or unwatch the ticket. If you watch a ticket, you will be informed via DM when there's an update regarding the ticket.\n" +
+                    $"Ticket ID: {ticket.Id}",
+                    components: GetTicketMenuComponent(ticket));
             }
+
+            await InformWatchers(ticket);
         }
     }
 }

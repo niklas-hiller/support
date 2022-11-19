@@ -33,6 +33,8 @@ namespace Support.Discord
 
             client.ModalSubmitted += ModalHandler.HandleModal;
 
+            client.SelectMenuExecuted += MenuHandler.HandleMenu;
+
             await client.SetGameAsync("if tickets were updated...", type: ActivityType.Watching);
 
             // Some alternative options would be to keep your token in an Environment Variable or a standalone file.

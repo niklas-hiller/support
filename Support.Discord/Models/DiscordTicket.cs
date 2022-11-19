@@ -6,6 +6,7 @@ namespace Support.Discord.Models
     {
         public readonly ulong GuildId;
         public ulong? MessageId { get; set; }
+        public List<ulong> Watchers { get; set; } = new List<ulong>();
 
         public DiscordTicket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, Dictionary<string, string> CustomFields, string Author,
