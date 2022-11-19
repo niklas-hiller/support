@@ -56,65 +56,66 @@ namespace Support.Discord
         {
             await SupportService.ConnectHub();
 
-            ulong guildId = configuration.RootGuildId;
-
-            var guildCommand1 = new SlashCommandBuilder()
-                .WithName("initiate") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Initiates the support channel if it does not exist yet.");  // Descriptions can have a max length of 100.
-
-            var guildCommand2 = new SlashCommandBuilder()
-                .WithName("create-ticket")
-                .WithDescription("Creates a new ticket.")
-                .AddOption(new SlashCommandOptionBuilder()
-                    .WithName("type")
-                    .WithDescription("The type of ticket you want to create")
-                    .WithRequired(true)
-                    .AddChoice(ETicketType.Bug.ToString(), ETicketType.Bug.ToString())
-                    .AddChoice(ETicketType.Request.ToString(), ETicketType.Request.ToString())
-                    .WithType(ApplicationCommandOptionType.String)
-                );
-
-            var guildCommand3 = new SlashCommandBuilder()
-                .WithName("update-ticket") // Note: Names have to be all lowercase and match the regular expression ^[\w-]{3,32}$
-                .WithDescription("Updates a ticket.")  // Descriptions can have a max length of 100. 
-                .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
-                .AddOption(new SlashCommandOptionBuilder()
-                    .WithName("status")
-                    .WithDescription("The status you wish to update the ticket to")
-                    .WithRequired(true)
-                    .AddChoice(ETicketStatus.Open.ToString(), ETicketStatus.Open.ToString())
-                    .AddChoice(ETicketStatus.In_Progress.ToString().Replace("_", " "), ETicketStatus.In_Progress.ToString().Replace("_", ""))
-                    .AddChoice(ETicketStatus.Done.ToString(), ETicketStatus.Done.ToString())
-                    .AddChoice(ETicketStatus.Declined.ToString(), ETicketStatus.Declined.ToString())
-                    .WithType(ApplicationCommandOptionType.String)
-                )
-                .AddOption(new SlashCommandOptionBuilder()
-                    .WithName("priority")
-                    .WithDescription("The priority you wish to update the ticket to")
-                    .WithRequired(true)
-                    .AddChoice(ETicketPriority.Trivial.ToString(), ETicketPriority.Trivial.ToString())
-                    .AddChoice(ETicketPriority.Minor.ToString(), ETicketPriority.Minor.ToString())
-                    .AddChoice(ETicketPriority.Lowest.ToString(), ETicketPriority.Lowest.ToString())
-                    .AddChoice(ETicketPriority.Low.ToString(), ETicketPriority.Low.ToString())
-                    .AddChoice(ETicketPriority.Medium.ToString(), ETicketPriority.Medium.ToString())
-                    .AddChoice(ETicketPriority.High.ToString(), ETicketPriority.High.ToString())
-                    .AddChoice(ETicketPriority.Highest.ToString(), ETicketPriority.Highest.ToString())
-                    .AddChoice(ETicketPriority.Major.ToString(), ETicketPriority.Major.ToString())
-                    .AddChoice(ETicketPriority.Critical.ToString(), ETicketPriority.Critical.ToString())
-                    .WithType(ApplicationCommandOptionType.String)
-                );
-
-            // Let's do our global command
-            // var globalCommand = new SlashCommandBuilder();
-            // globalCommand.WithName("first-global-command");
-            // globalCommand.WithDescription("This is my first global slash command");
-
+            List<ApplicationCommandProperties> applicationCommandProperties = new();
             try
             {
-                // Now that we have our builder, we can call the CreateApplicationCommandAsync method to make our slash command.
-                await client.Rest.CreateGuildCommand(guildCommand1.Build(), guildId);
-                await client.Rest.CreateGuildCommand(guildCommand2.Build(), guildId);
-                await client.Rest.CreateGuildCommand(guildCommand3.Build(), guildId);
+                var command1 = new SlashCommandBuilder()
+                    .WithName("initiate")
+                    .WithDescription("Initiates the support channel if it does not exist yet.")
+                    .AddOption(
+                        name: "channel",
+                        type: ApplicationCommandOptionType.Channel,
+                        description: "The channel which should be used to display live tickets",
+                        isRequired: true,
+                        channelTypes: new List<ChannelType>() { ChannelType.Text }
+                    );
+                applicationCommandProperties.Add(command1.Build());
+
+                var command2 = new SlashCommandBuilder()
+                    .WithName("create-ticket")
+                    .WithDescription("Creates a new ticket.")
+                    .AddOption(new SlashCommandOptionBuilder()
+                        .WithName("type")
+                        .WithDescription("The type of ticket you want to create")
+                        .WithRequired(true)
+                        .AddChoice(ETicketType.Bug.ToString(), ETicketType.Bug.ToString())
+                        .AddChoice(ETicketType.Request.ToString(), ETicketType.Request.ToString())
+                        .WithType(ApplicationCommandOptionType.String)
+                    );
+                applicationCommandProperties.Add(command2.Build());
+
+                var command3 = new SlashCommandBuilder()
+                    .WithName("update-ticket")
+                    .WithDescription("Updates a ticket.")
+                    .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
+                    .AddOption(new SlashCommandOptionBuilder()
+                        .WithName("status")
+                        .WithDescription("The status you wish to update the ticket to")
+                        .WithRequired(true)
+                        .AddChoice(ETicketStatus.Open.ToString(), ETicketStatus.Open.ToString())
+                        .AddChoice(ETicketStatus.In_Progress.ToString().Replace("_", " "), ETicketStatus.In_Progress.ToString().Replace("_", ""))
+                        .AddChoice(ETicketStatus.Done.ToString(), ETicketStatus.Done.ToString())
+                        .AddChoice(ETicketStatus.Declined.ToString(), ETicketStatus.Declined.ToString())
+                        .WithType(ApplicationCommandOptionType.String)
+                    )
+                    .AddOption(new SlashCommandOptionBuilder()
+                        .WithName("priority")
+                        .WithDescription("The priority you wish to update the ticket to")
+                        .WithRequired(true)
+                        .AddChoice(ETicketPriority.Trivial.ToString(), ETicketPriority.Trivial.ToString())
+                        .AddChoice(ETicketPriority.Minor.ToString(), ETicketPriority.Minor.ToString())
+                        .AddChoice(ETicketPriority.Lowest.ToString(), ETicketPriority.Lowest.ToString())
+                        .AddChoice(ETicketPriority.Low.ToString(), ETicketPriority.Low.ToString())
+                        .AddChoice(ETicketPriority.Medium.ToString(), ETicketPriority.Medium.ToString())
+                        .AddChoice(ETicketPriority.High.ToString(), ETicketPriority.High.ToString())
+                        .AddChoice(ETicketPriority.Highest.ToString(), ETicketPriority.Highest.ToString())
+                        .AddChoice(ETicketPriority.Major.ToString(), ETicketPriority.Major.ToString())
+                        .AddChoice(ETicketPriority.Critical.ToString(), ETicketPriority.Critical.ToString())
+                        .WithType(ApplicationCommandOptionType.String)
+                    );
+                applicationCommandProperties.Add(command3.Build());
+
+                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
 
                 // With global commands we don't need the guild.
                 // await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());

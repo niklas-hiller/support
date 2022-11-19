@@ -11,9 +11,9 @@ namespace Support.Discord.Services
     {
         private static readonly DiscordSocketClient client = Program.client;
         private static readonly List<DiscordTicket> tickets = new List<DiscordTicket>();
-        private static readonly Dictionary<ulong, ulong> supportChannels = new Dictionary<ulong, ulong>();
+        private static readonly Dictionary<ulong, ulong> supportChannels = new();
         private static HubConnection hubConnection;
-        private static readonly Session session = new Session() { GroupName = SessionGroups.Listener, Name = "Discord" };
+        private static readonly Session session = new() { GroupName = SessionGroups.Listener, Name = "Discord" };
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public static async Task ConnectHub()
@@ -275,9 +275,10 @@ namespace Support.Discord.Services
 
         public static async Task RegisterSupportChannel(SocketSlashCommand command)
         {
+            SocketTextChannel channel = command.Data.Options.First(x => x.Name == "channel").Value as SocketTextChannel;
             if (command.GuildId != null && command.ChannelId != null)
             {
-                supportChannels.Add((ulong)command.GuildId, (ulong)command.ChannelId);
+                supportChannels.Add((ulong)command.GuildId, channel.Id);
             }
             await command.RespondAsync("Successfully initiated support channel.");
         }
