@@ -2,7 +2,7 @@
 
 namespace Support.Discord.Models
 {
-    public class DiscordTicket : Ticket
+    internal class DiscordTicket : Ticket
     {
         public ulong? MessageId { get; set; }
         public List<ulong> Watchers { get; set; } = new List<ulong>();

@@ -10,7 +10,7 @@ using Support.Shared.Enums;
 
 namespace Support.Discord.Handler
 {
-    public static class CommandHandler
+    internal static class CommandHandler
     {
         private static readonly DiscordSocketClient client = Program.client;
 

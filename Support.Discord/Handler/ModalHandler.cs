@@ -4,7 +4,7 @@ using Support.Shared.Enums;
 
 namespace Support.Discord.Handler
 {
-    public static class ModalHandler
+    internal static class ModalHandler
     {
         public static async Task HandleModal(SocketModal modal)
         {

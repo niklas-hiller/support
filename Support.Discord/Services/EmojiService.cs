@@ -5,7 +5,7 @@ using Support.Shared.Enums;
 
 namespace Support.Discord.Services
 {
-    public static class EmojiService
+    internal static class EmojiService
     {
         private static readonly DiscordSocketClient client = Program.client;
 

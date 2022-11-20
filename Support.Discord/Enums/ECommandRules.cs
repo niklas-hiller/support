@@ -1,6 +1,6 @@
 ﻿namespace Support.Discord.Enums
 {
-    public enum ECommandRules
+    internal enum ECommandRules
     {
         NO_DM,
         REQUIRES_INITIALIZE,

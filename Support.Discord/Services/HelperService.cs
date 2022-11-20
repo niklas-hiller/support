@@ -2,7 +2,7 @@
 
 namespace Support.Discord.Services
 {
-    public static class HelperService
+    internal static class HelperService
     {
         public static object GetDataObjectFromSlashCommand(SocketSlashCommand command, string name)
         {

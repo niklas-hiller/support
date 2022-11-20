@@ -5,7 +5,7 @@ using System.Net.Sockets;
 
 namespace Support.Server.Hubs;
 
-public class SupportHub : Hub
+internal class SupportHub : Hub
 {
     private readonly ILogger logger;
     private static readonly Dictionary<string, Project> projects = new Dictionary<string, Project>();

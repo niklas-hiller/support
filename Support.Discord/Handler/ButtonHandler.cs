@@ -2,7 +2,7 @@
 
 namespace Support.Discord.Handler
 {
-    public static class ButtonHandler
+    internal static class ButtonHandler
     {
         public static async Task HandleButton(SocketMessageComponent component)
         {

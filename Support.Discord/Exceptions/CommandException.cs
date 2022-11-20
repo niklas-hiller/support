@@ -2,7 +2,7 @@
 
 namespace Support.Discord.Exceptions
 {
-    public class RuleException : Exception
+    internal class RuleException : Exception
     {
         public ECommandRules Reason { get; protected set; }
 
