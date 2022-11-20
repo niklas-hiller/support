@@ -8,6 +8,14 @@ namespace Support.Discord.Models
         public ulong? MessageId { get; set; }
         public List<ulong> Watchers { get; set; } = new List<ulong>();
 
+        public DiscordTicket(Ticket ticket, ulong GuildId) :
+            base(ticket.Id, ticket.Type, ticket.Status, ticket.Priority,
+                ticket.Title, ticket.CustomFields, ticket.Author,
+                ticket.CreatedAt, ticket.LastUpdatedAt)
+        {
+            this.GuildId = GuildId;
+        }
+
         public DiscordTicket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, Dictionary<string, string> CustomFields, string Author,
             DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt,

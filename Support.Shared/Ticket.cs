@@ -43,5 +43,18 @@
             this.CreatedAt = CreatedAt;
             this.LastUpdatedAt = LastUpdatedAt;
         }
+
+        public Ticket(TicketCreateRequest request)
+        {
+            this.Id = Guid.NewGuid().ToString();
+            this.Type = request.Type;
+            this.Status = request.Status;
+            this.Priority = request.Priority;
+            this.Title = request.Title;
+            this.CustomFields = request.CustomFields;
+            this.Author = request.Author;
+            this.CreatedAt = DateTimeOffset.Now;
+            this.LastUpdatedAt = this.CreatedAt;
+        }
     }
 }

@@ -3,6 +3,8 @@ using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using NLog;
+using Support.Discord.Enums;
+using Support.Discord.Exceptions;
 using Support.Discord.Services;
 using Support.Shared;
 
@@ -100,49 +102,70 @@ namespace Support.Discord.Handler
             }
         }
 
+        public static async Task HandleCommandRules(SocketSlashCommand command, ECommandRules rule)
+        {
+            switch (rule)
+            {
+                case ECommandRules.NO_DM:
+                    if (command.Channel.GetChannelType() == ChannelType.DM)
+                    {
+                        throw new RuleException(ECommandRules.NO_DM);
+                    }
+                    break;
+                case ECommandRules.REQUIRES_INITIALIZE:
+                    if (!SupportService.HasSupportChannel((ulong)command.GuildId))
+                    {
+                        throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
+                    }
+                    break;
+            }
+        }
+
         public static async Task HandleCommand(SocketSlashCommand command)
         {
             // Let's add a switch statement for the command name so we can handle multiple commands in one event.
             logger.Info($"User executed {command.Data.Name}");
-            switch (command.Data.Name)
+            try
             {
-                case "initiate":
-                    if (command.Channel.GetChannelType() == ChannelType.DM)
-                    {
-                        await command.RespondAsync("You can't use this command outside of guilds.");
-                        return;
-                    }
-                    await HandleInitiateCommand(command);
-                    break;
-                case "create-ticket":
-                    if (command.Channel.GetChannelType() == ChannelType.DM)
-                    {
-                        await command.RespondAsync("You can't use this command outside of guilds.");
-                        return;
-                    }
-                    ETicketType type = TicketType.FromString(command.Data.Options.First(x => x.Name == "type").Value.ToString());
-                    switch (type)
-                    {
-                        case ETicketType.Bug:
-                            await HandleBugCommand(command);
-                            break;
-                        case ETicketType.Request:
-                            await HandleRequestCommand(command);
-                            break;
-                    }
-                    break;
-                case "update-ticket":
-                    if (command.Channel.GetChannelType() == ChannelType.DM)
-                    {
-                        await command.RespondAsync("You can't use this command outside of guilds.");
-                        return;
-                    }
-                    await HandleUpdateCommand(command);
-                    break;
-                case "force-unwatch":
-                    await HandleForceUnwatchCommand(command);
-                    break;
+                switch (command.Data.Name)
+                {
+                    case "initiate":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+
+                        await HandleInitiateCommand(command);
+                        break;
+                    case "create-ticket":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
+
+                        ETicketType type = TicketType.FromString(
+                            HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
+                        switch (type)
+                        {
+                            case ETicketType.Bug:
+                                await HandleBugCommand(command);
+                                break;
+                            case ETicketType.Request:
+                                await HandleRequestCommand(command);
+                                break;
+                        }
+                        break;
+                    case "update-ticket":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
+
+                        await HandleUpdateCommand(command);
+                        break;
+                    case "force-unwatch":
+                        await HandleForceUnwatchCommand(command);
+                        break;
+                }
             }
+            catch (RuleException ex)
+            {
+                await command.RespondAsync(ex.ToString());
+            }
+
         }
 
         private static async Task HandleInitiateCommand(SocketSlashCommand command)
@@ -152,7 +175,7 @@ namespace Support.Discord.Handler
 
         private static async Task HandleForceUnwatchCommand(SocketSlashCommand command)
         {
-            string ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
+            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
             try
             {
                 bool success = SupportService.SetWatchTicket(ticketId, command.User.Id, false);
@@ -181,16 +204,23 @@ namespace Support.Discord.Handler
 
         private static async Task HandleUpdateCommand(SocketSlashCommand command)
         {
-            var statusStr = command.Data.Options.First(x => x.Name == "status").Value.ToString() ?? "";
+            var statusStr = HelperService.GetDataObjectFromSlashCommand(command, "status").ToString() ?? "";
             var status = TicketStatus.FromString(statusStr);
 
-            var priorityStr = command.Data.Options.First(x => x.Name == "priority").Value.ToString() ?? "";
+            var priorityStr = HelperService.GetDataObjectFromSlashCommand(command, "priority").ToString() ?? "";
             var priority = TicketPriority.FromString(priorityStr);
 
-            var ticketId = command.Data.Options.First(x => x.Name == "ticket").Value.ToString() ?? "0";
+            var ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
 
-            await SupportService.UpdateTicket(ticketId, status, priority);
-            await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
+            try
+            {
+                await SupportService.InitiateTransmitUpdateTicket(ticketId, status, priority);
+                await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
+            }
+            catch (KeyNotFoundException e)
+            {
+                await command.RespondAsync($"Couldn't updated Ticket {ticketId}. (Ticket Id does not exist)", ephemeral: true);
+            }
         }
 
         private static async Task HandleBugCommand(SocketSlashCommand command)

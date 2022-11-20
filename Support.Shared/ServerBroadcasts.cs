@@ -3,8 +3,8 @@
     public static class ServerBroadcasts
     {
         public const string SessionConnected = "SessionConnected";
+        public const string SendTicketCreate = "SendTicketCreate";
         public const string SendTicketUpdate = "SendTicketUpdate";
-        [Obsolete]
-        public const string SendUpdateEvent = "SendUpdateEvent";
+        public const string SendServerError = "SendServerError";
     }
 }

@@ -11,6 +11,7 @@ namespace Support.Discord.Services
     {
         private static readonly DiscordSocketClient client = Program.client;
         private static readonly List<DiscordTicket> tickets = new List<DiscordTicket>();
+        private static readonly Dictionary<string, ulong> ticketCreateQueue = new Dictionary<string, ulong>();
         private static readonly Dictionary<ulong, ulong> supportChannels = new();
         private static HubConnection hubConnection;
         private static readonly Session session = new() { GroupName = SessionGroups.Listener, Name = "Discord" };
@@ -24,17 +25,35 @@ namespace Support.Discord.Services
                     .WithUrl("https://localhost:7290/Support")
                     .Build();
 
-                hubConnection.On<Ticket>(ServerBroadcasts.SendTicketUpdate, async ticket =>
+                hubConnection.On<string, Ticket>(ServerBroadcasts.SendTicketCreate, async (requestId, ticket) =>
                 {
                     try
                     {
-                        await ReceiveTicket(ticket);
+                        await ReceiveTicketCreate(requestId, ticket);
                     }
                     catch (Exception ex)
                     {
                         logger.Error("Failed to receive ticket");
                         logger.Error(ex);
                     }
+                });
+
+                hubConnection.On<Ticket>(ServerBroadcasts.SendTicketUpdate, async ticket =>
+                {
+                    try
+                    {
+                        await ReceiveTicketUpdate(ticket);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error("Failed to receive ticket");
+                        logger.Error(ex);
+                    }
+                });
+
+                hubConnection.On<ServerError>(ServerBroadcasts.SendServerError, error =>
+                {
+                    logger.Error($"The server raised a exception on one of the requests from this application: {error.Message}");
                 });
 
                 await hubConnection.StartAsync();
@@ -57,6 +76,131 @@ namespace Support.Discord.Services
                 logger.Warn($"Couldn't find a ticket with the id {ticketId}");
                 return null;
             }
+        }
+
+        private static async Task TransmitTicketCreate(TicketCreateRequest ticketCreateRequest)
+        {
+            logger.Info($"Sending Ticket ({ticketCreateRequest.Title}) create to server");
+            await hubConnection.SendAsync(
+                ServerBroadcasts.SendTicketCreate,
+                session,
+                ticketCreateRequest
+            );
+        }
+
+        private static async Task TransmitTicketUpdate(TicketUpdateRequest ticketUpdateRequest)
+        {
+            logger.Info($"Sending Ticket ({ticketUpdateRequest.Id}) update to server");
+            await hubConnection.SendAsync(
+                ServerBroadcasts.SendTicketUpdate,
+                session,
+                ticketUpdateRequest
+            );
+        }
+
+        private static async Task ReceiveTicketCreate(string requestId, Ticket ticket)
+        {
+            // Receive ticket from hub
+            logger.Info($"Received Ticket ({ticket.Id}) from server");
+            if (!ticketCreateQueue.ContainsKey(requestId))
+            {
+                logger.Info($"Couldn't identify Ticket ({ticket.Id}) from server, discarded ticket.");
+                return;
+            }
+            DiscordTicket discordTicket = new DiscordTicket(ticket, ticketCreateQueue[requestId]);
+            ticketCreateQueue.Remove(requestId);
+            tickets.Add(discordTicket);
+            await UpdateTicket(discordTicket);
+        }
+
+        private static async Task ReceiveTicketUpdate(Ticket ticket)
+        {
+            // Receive ticket from hub
+            try
+            {
+                logger.Info($"Received Ticket ({ticket.Id}) from server");
+                DiscordTicket discordTicket = GetTicketById(ticket.Id);
+                discordTicket.Update(ticket);
+                await UpdateTicket(discordTicket);
+            }
+            catch (ArgumentNullException ex)
+            {
+                logger.Error($"Tried to receive unknown ticket. {ex}");
+            }
+        }
+
+        public static async Task CreateTicket(SocketModal modal, ETicketType type)
+        {
+            List<SocketMessageComponentData> components =
+                modal.Data.Components.ToList();
+
+            string name = components
+                .First(x => x.CustomId == "name").Value;
+            Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, type);
+
+            ulong guildId = modal.GuildId ?? 0;
+
+            TicketCreateRequest request = new TicketCreateRequest(
+                Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
+                Title: name, CustomFields: customFields, Author: modal.User.ToString());
+            ticketCreateQueue.Add(request.RequestId, guildId);
+
+            await TransmitTicketCreate(request);
+            await modal.RespondAsync($"Successfully submitted your ticket.", ephemeral: true);
+        }
+
+        public static async Task InitiateTransmitUpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
+        {
+            if (GetTicketById(ticketId) == null) throw new KeyNotFoundException();
+
+            TicketUpdateRequest request = new TicketUpdateRequest(
+                id: ticketId, status: newStatus, priority: newPriority);
+
+            await TransmitTicketUpdate(request);
+        }
+
+        private static SocketTextChannel? GetSupportChannel(SocketGuild guild)
+        {
+            ulong channelId;
+
+            if (!supportChannels.TryGetValue(guild.Id, out channelId))
+            {
+                return null;
+            }
+
+            return guild.GetTextChannel(channelId);
+        }
+
+        public static bool HasSupportChannel(ulong guildId)
+        {
+            return supportChannels.ContainsKey(guildId);
+        }
+
+        public static async Task RegisterSupportChannel(SocketSlashCommand command)
+        {
+            SocketTextChannel channel = HelperService.GetDataObjectFromSlashCommand(command, "channel") as SocketTextChannel;
+            if (command.GuildId != null && command.ChannelId != null)
+            {
+                supportChannels.Add((ulong)command.GuildId, channel.Id);
+            }
+            await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
+        }
+
+        public static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
+        {
+            DiscordTicket? ticket = GetTicketById(ticketId);
+            if (ticket == null) throw new KeyNotFoundException();
+            if (isWatching)
+            {
+                if (ticket.Watchers.Contains(userId)) return false;
+                ticket.Watchers.Add(userId);
+            }
+            else
+            {
+                if (!ticket.Watchers.Contains(userId)) return false;
+                ticket.Watchers.Remove(userId);
+            }
+            return true;
         }
 
         public static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
@@ -85,71 +229,6 @@ namespace Support.Discord.Services
                     break;
             }
             return dictionary;
-        }
-
-        public static async Task CreateTicket(SocketModal modal, ETicketType type)
-        {
-            List<SocketMessageComponentData> components =
-                modal.Data.Components.ToList();
-
-            string name = components
-                .First(x => x.CustomId == "name").Value;
-            Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, type);
-
-            ulong guildId = modal.GuildId ?? 0;
-
-            DiscordTicket ticket = new DiscordTicket(
-                Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
-                Title: name, CustomFields: customFields, Author: modal.User.ToString(),
-                CreatedAt: DateTimeOffset.Now, DateTimeOffset.Now, guildId);
-
-            tickets.Add(ticket);
-            await TransmitTicket(ticket);
-            await modal.RespondAsync($"Successfully submitted your ticket. ({ticket.Id})", ephemeral: true);
-        }
-
-        private static async Task TransmitTicket(DiscordTicket discordTicket)
-        {
-            Ticket ticket = discordTicket.Downgrade();
-            logger.Info($"Sending Ticket {ticket.Id} to server");
-            await hubConnection.SendAsync(
-                ServerBroadcasts.SendTicketUpdate,
-                session,
-                ticket
-            );
-        }
-
-        private static async Task ReceiveTicket(Ticket ticket)
-        {
-            // Receive ticket from hub
-            try
-            {
-                logger.Info($"Received Ticket {ticket.Id} from server");
-                DiscordTicket discordTicket = GetTicketById(ticket.Id);
-                discordTicket.Update(ticket);
-                await UpdateTicket(discordTicket);
-            }
-            catch (ArgumentNullException ex)
-            {
-                logger.Error($"Tried to receive unknown ticket. {ex}");
-            }
-        }
-
-        public static async Task UpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
-        {
-            // Receive ticket from hub
-            try
-            {
-                DiscordTicket discordTicket = tickets.First(x => x.Id == ticketId);
-                discordTicket.Status = newStatus;
-                discordTicket.Priority = newPriority;
-                discordTicket.LastUpdatedAt = DateTimeOffset.Now;
-                await TransmitTicket(discordTicket);
-            }
-            catch (ArgumentNullException ex)
-            {
-                logger.Warn($"Tried to receive unknown ticket. {ex}");
-            }
         }
 
         private static void AttachTicketStatusComponent(ComponentBuilder builder, ETicketStatus status)
@@ -242,6 +321,14 @@ namespace Support.Discord.Services
             builder.WithSelectMenu(menuBuilder);
         }
 
+        public static void AttachTicketCustomFields(EmbedBuilder builder, DiscordTicket ticket)
+        {
+            foreach (KeyValuePair<string, string> entry in ticket.CustomFields)
+            {
+                builder.AddField(entry.Key, entry.Value);
+            }
+        }
+
         private static MessageComponent GetTicketComponents(DiscordTicket ticket)
         {
             var builder = new ComponentBuilder();
@@ -255,14 +342,6 @@ namespace Support.Discord.Services
             var builder = new ComponentBuilder();
             AttachTicketWatchComponent(builder, ticket.Id);
             return builder.Build();
-        }
-
-        public static void AttachTicketCustomFields(EmbedBuilder builder, DiscordTicket ticket)
-        {
-            foreach (KeyValuePair<string, string> entry in ticket.CustomFields)
-            {
-                builder.AddField(entry.Key, entry.Value);
-            }
         }
 
         private static Embed GetTicketEmbedded(DiscordTicket ticket)
@@ -291,28 +370,6 @@ namespace Support.Discord.Services
                 .WithFooter($"Ticket Id: {ticket.Id}");
             AttachTicketCustomFields(builder, ticket);
             return builder.Build();
-        }
-
-        private static SocketTextChannel? GetSupportChannel(SocketGuild guild)
-        {
-            ulong channelId;
-
-            if (!supportChannels.TryGetValue(guild.Id, out channelId))
-            {
-                return null;
-            }
-
-            return guild.GetTextChannel(channelId);
-        }
-
-        public static async Task RegisterSupportChannel(SocketSlashCommand command)
-        {
-            SocketTextChannel channel = command.Data.Options.First(x => x.Name == "channel").Value as SocketTextChannel;
-            if (command.GuildId != null && command.ChannelId != null)
-            {
-                supportChannels.Add((ulong)command.GuildId, channel.Id);
-            }
-            await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
         }
 
         private static Embed GetWatcherEmbedded(DiscordTicket ticket)
@@ -386,23 +443,6 @@ namespace Support.Discord.Services
             }
 
             await InformWatchers(ticket);
-        }
-
-        public static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
-        {
-            DiscordTicket? ticket = GetTicketById(ticketId);
-            if (ticket == null) throw new KeyNotFoundException();
-            if (isWatching)
-            {
-                if (ticket.Watchers.Contains(userId)) return false;
-                ticket.Watchers.Add(userId);
-            }
-            else
-            {
-                if (!ticket.Watchers.Contains(userId)) return false;
-                ticket.Watchers.Remove(userId);
-            }
-            return true;
         }
     }
 }
