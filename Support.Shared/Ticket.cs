@@ -13,27 +13,13 @@ namespace Support.Shared
         public string Author { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset LastUpdatedAt { get; set; }
+        public string ProjectId { get; set; }
 
         public Ticket() { }
 
-        public Ticket(ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
-            string Title, Dictionary<string, string> CustomFields, string Author,
-            DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
-        {
-            this.Id = Guid.NewGuid().ToString();
-            this.Type = Type;
-            this.Status = Status;
-            this.Priority = Priority;
-            this.Title = Title;
-            this.CustomFields = CustomFields;
-            this.Author = Author;
-            this.CreatedAt = CreatedAt;
-            this.LastUpdatedAt = LastUpdatedAt;
-        }
-
         public Ticket(string Id, ETicketType Type, ETicketStatus Status, ETicketPriority Priority,
             string Title, Dictionary<string, string> CustomFields, string Author,
-            DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt)
+            DateTimeOffset CreatedAt, DateTimeOffset LastUpdatedAt, string ProjectId)
         {
             this.Id = Id;
             this.Type = Type;
@@ -44,6 +30,7 @@ namespace Support.Shared
             this.Author = Author;
             this.CreatedAt = CreatedAt;
             this.LastUpdatedAt = LastUpdatedAt;
+            this.ProjectId = ProjectId;
         }
 
         public Ticket(TicketCreateRequest request)
@@ -57,6 +44,7 @@ namespace Support.Shared
             this.Author = request.Author;
             this.CreatedAt = DateTimeOffset.Now;
             this.LastUpdatedAt = this.CreatedAt;
+            this.ProjectId = request.ProjectId;
         }
     }
 }

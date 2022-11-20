@@ -21,8 +21,14 @@ namespace Support.Discord.Handler
             List<ApplicationCommandProperties> applicationCommandProperties = new();
             try
             {
-                var command1 = new SlashCommandBuilder()
+                var command0 = new SlashCommandBuilder()
                     .WithName("initiate")
+                    .WithDescription("Initiates the project if it does not exist yet.")
+                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name of the project you initiate", isRequired: true);
+                applicationCommandProperties.Add(command0.Build());
+
+                var command1 = new SlashCommandBuilder()
+                    .WithName("support-channel")
                     .WithDescription("Initiates the support channel if it does not exist yet.")
                     .AddOption(
                         name: "channel",
@@ -113,6 +119,12 @@ namespace Support.Discord.Handler
                     }
                     break;
                 case ECommandRules.REQUIRES_INITIALIZE:
+                    if (!SupportService.HasProject((ulong)command.GuildId))
+                    {
+                        throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
+                    }
+                    break;
+                case ECommandRules.REQUIRES_SUPPORT_CHANNEL:
                     if (!SupportService.HasSupportChannel((ulong)command.GuildId))
                     {
                         throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
@@ -134,9 +146,15 @@ namespace Support.Discord.Handler
 
                         await HandleInitiateCommand(command);
                         break;
-                    case "create-ticket":
+                    case "support-channel":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
                         await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
+
+                        await HandleSupportChannelCommand(command);
+                        break;
+                    case "create-ticket":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        await HandleCommandRules(command, ECommandRules.REQUIRES_SUPPORT_CHANNEL);
 
                         ETicketType type = TicketType.FromString(
                             HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
@@ -152,7 +170,7 @@ namespace Support.Discord.Handler
                         break;
                     case "update-ticket":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
-                        await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
+                        await HandleCommandRules(command, ECommandRules.REQUIRES_SUPPORT_CHANNEL);
 
                         await HandleUpdateCommand(command);
                         break;
@@ -163,43 +181,19 @@ namespace Support.Discord.Handler
             }
             catch (RuleException ex)
             {
-                await command.RespondAsync(ex.ToString());
+                await command.RespondAsync(ex.ToString(), ephemeral: true);
             }
 
         }
 
         private static async Task HandleInitiateCommand(SocketSlashCommand command)
         {
-            await SupportService.RegisterSupportChannel(command);
+            await SupportService.CreateProject(command);
         }
 
-        private static async Task HandleForceUnwatchCommand(SocketSlashCommand command)
+        private static async Task HandleSupportChannelCommand(SocketSlashCommand command)
         {
-            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
-            try
-            {
-                bool success = SupportService.SetWatchTicket(ticketId, command.User.Id, false);
-                if (success)
-                {
-                    await command.RespondAsync(
-                        $"Successfully force removed ticket {ticketId} from your watchlist.\n" +
-                        "Please keep in mind that the select menu of that ticket will still show 'Watching'.", ephemeral: true);
-                }
-                else
-                {
-                    await command.RespondAsync(
-                        $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
-                        "Reason: You are not watching that ticket. Are you sure you entered the right id?", ephemeral: true);
-                }
-
-            }
-            catch (KeyNotFoundException e)
-            {
-                await command.RespondAsync(
-                    $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
-                    "Reason: A ticket with the given Id does not exist. Maybe the ticket does not exist anymore?", ephemeral: true);
-            }
-
+            await SupportService.RegisterSupportChannel(command);
         }
 
         private static async Task HandleUpdateCommand(SocketSlashCommand command)
@@ -246,6 +240,35 @@ namespace Support.Discord.Handler
                 .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
 
             await command.RespondWithModalAsync(modal.Build());
+        }
+
+        private static async Task HandleForceUnwatchCommand(SocketSlashCommand command)
+        {
+            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
+            try
+            {
+                bool success = SupportService.SetWatchTicket(ticketId, command.User.Id, false);
+                if (success)
+                {
+                    await command.RespondAsync(
+                        $"Successfully force removed ticket {ticketId} from your watchlist.\n" +
+                        "Please keep in mind that the select menu of that ticket will still show 'Watching'.", ephemeral: true);
+                }
+                else
+                {
+                    await command.RespondAsync(
+                        $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                        "Reason: You are not watching that ticket. Are you sure you entered the right id?", ephemeral: true);
+                }
+
+            }
+            catch (KeyNotFoundException e)
+            {
+                await command.RespondAsync(
+                    $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                    "Reason: A ticket with the given Id does not exist. Maybe the ticket does not exist anymore?", ephemeral: true);
+            }
+
         }
     }
 }

@@ -11,9 +11,9 @@ namespace Support.Discord.Services
     internal static class SupportService
     {
         private static readonly DiscordSocketClient client = Program.client;
+        private static readonly List<DiscordProject> projects = new List<DiscordProject>();
         private static readonly List<DiscordTicket> tickets = new List<DiscordTicket>();
-        private static readonly Dictionary<string, ulong> ticketCreateQueue = new Dictionary<string, ulong>();
-        private static readonly Dictionary<ulong, ulong> supportChannels = new();
+        private static readonly Dictionary<string, ulong> projectCreateQueue = new Dictionary<string, ulong>();
         private static HubConnection hubConnection;
         private static readonly Session session = new() { GroupName = SessionGroups.Listener, Name = "Discord" };
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -26,11 +26,24 @@ namespace Support.Discord.Services
                     .WithUrl("https://localhost:7290/Support")
                     .Build();
 
-                hubConnection.On<string, Ticket>(ServerBroadcasts.SendTicketCreate, async (requestId, ticket) =>
+                hubConnection.On<string, Project>(ServerBroadcasts.SendProject, async (requestId, project) =>
                 {
                     try
                     {
-                        await ReceiveTicketCreate(requestId, ticket);
+                        await ReceiveProject(requestId, project);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error("Failed to receive project");
+                        logger.Error(ex);
+                    }
+                });
+
+                hubConnection.On<Ticket>(ServerBroadcasts.SendTicketCreate, async ticket =>
+                {
+                    try
+                    {
+                        await ReceiveTicketCreate(ticket);
                     }
                     catch (Exception ex)
                     {
@@ -79,6 +92,44 @@ namespace Support.Discord.Services
             }
         }
 
+        private static async Task TransmitProjectCreate(ProjectCreateRequest projectCreateRequest)
+        {
+            logger.Info($"Sending Project ({projectCreateRequest.Name}) create to server");
+            await hubConnection.SendAsync(
+                ServerBroadcasts.CreateNewProject,
+                session,
+                projectCreateRequest
+            );
+        }
+
+        public static async Task CreateProject(SocketSlashCommand command)
+        {
+            var projectName = HelperService.GetDataObjectFromSlashCommand(command, "project-name").ToString();
+
+            ulong guildId = command.GuildId ?? 0;
+
+            ProjectCreateRequest request = new ProjectCreateRequest(
+                name: projectName);
+            projectCreateQueue.Add(request.RequestId, guildId);
+
+            await TransmitProjectCreate(request);
+            await command.RespondAsync($"Successfully submitted your project.", ephemeral: true);
+        }
+
+        private static async Task ReceiveProject(string requestId, Project project)
+        {
+            // Receive project from hub
+            logger.Info($"Received Project ({project.Id}) from server");
+            if (!projectCreateQueue.ContainsKey(requestId))
+            {
+                logger.Info($"Couldn't identify Project ({project.Id}) from server, discarded ticket.");
+                return;
+            }
+            DiscordProject discordProject = new DiscordProject(project, projectCreateQueue[requestId]);
+            projectCreateQueue.Remove(requestId);
+            projects.Add(discordProject);
+        }
+
         private static async Task TransmitTicketCreate(TicketCreateRequest ticketCreateRequest)
         {
             logger.Info($"Sending Ticket ({ticketCreateRequest.Title}) create to server");
@@ -99,17 +150,18 @@ namespace Support.Discord.Services
             );
         }
 
-        private static async Task ReceiveTicketCreate(string requestId, Ticket ticket)
+        private static async Task ReceiveTicketCreate(Ticket ticket)
         {
             // Receive ticket from hub
             logger.Info($"Received Ticket ({ticket.Id}) from server");
-            if (!ticketCreateQueue.ContainsKey(requestId))
+            DiscordProject? project = GetProjectById(ticket.ProjectId);
+            if (project == null)
             {
                 logger.Info($"Couldn't identify Ticket ({ticket.Id}) from server, discarded ticket.");
                 return;
             }
-            DiscordTicket discordTicket = new DiscordTicket(ticket, ticketCreateQueue[requestId]);
-            ticketCreateQueue.Remove(requestId);
+            DiscordTicket discordTicket = new DiscordTicket(ticket);
+            project.Tickets.Add(discordTicket);
             tickets.Add(discordTicket);
             await UpdateTicket(discordTicket);
         }
@@ -140,11 +192,11 @@ namespace Support.Discord.Services
             Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, type);
 
             ulong guildId = modal.GuildId ?? 0;
+            DiscordProject project = GetProjectFromGuild(guildId);
 
             TicketCreateRequest request = new TicketCreateRequest(
-                Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
+                ProjectId: project.Id, Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
                 Title: name, CustomFields: customFields, Author: modal.User.ToString());
-            ticketCreateQueue.Add(request.RequestId, guildId);
 
             await TransmitTicketCreate(request);
             await modal.RespondAsync($"Successfully submitted your ticket.", ephemeral: true);
@@ -160,21 +212,46 @@ namespace Support.Discord.Services
             await TransmitTicketUpdate(request);
         }
 
-        private static SocketTextChannel? GetSupportChannel(SocketGuild guild)
+        private static DiscordProject? GetProjectFromGuild(ulong guildId)
         {
-            ulong channelId;
-
-            if (!supportChannels.TryGetValue(guild.Id, out channelId))
+            try
             {
+                return projects.First(x => x.GuildId == guildId);
+            }
+            catch (InvalidOperationException e)
+            {
+                logger.Warn($"Couldn't find a project with the guild id {guildId}");
                 return null;
             }
+        }
 
-            return guild.GetTextChannel(channelId);
+        private static DiscordProject GetProjectById(string projectId)
+        {
+            return projects.First(x => x.Id == projectId);
+        }
+
+        private static SocketGuild GetGuildByProjectId(string projectId)
+        {
+            DiscordProject project = GetProjectById(projectId);
+            return client.GetGuild(project.GuildId);
+        }
+
+        public static bool HasProject(ulong guildId)
+        {
+            return GetProjectFromGuild(guildId) != null;
+        }
+
+        private static SocketTextChannel? GetSupportChannel(SocketGuild guild)
+        {
+            ulong? channelId = GetProjectFromGuild(guild.Id).ChannelId;
+            if (channelId == null) return null;
+
+            return guild.GetTextChannel((ulong)channelId);
         }
 
         public static bool HasSupportChannel(ulong guildId)
         {
-            return supportChannels.ContainsKey(guildId);
+            return GetProjectFromGuild(guildId).ChannelId != null;
         }
 
         public static async Task RegisterSupportChannel(SocketSlashCommand command)
@@ -182,9 +259,16 @@ namespace Support.Discord.Services
             SocketTextChannel channel = HelperService.GetDataObjectFromSlashCommand(command, "channel") as SocketTextChannel;
             if (command.GuildId != null && command.ChannelId != null)
             {
-                supportChannels.Add((ulong)command.GuildId, channel.Id);
+                ulong guildId = (ulong)command.GuildId;
+                if (!HasSupportChannel(guildId))
+                {
+                    DiscordProject project = GetProjectFromGuild(guildId);
+                    project.ChannelId = command.ChannelId;
+                    await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.", ephemeral: true);
+                    return;
+                }
             }
-            await command.RespondAsync($"Successfully initiated support channel in {channel.Mention}.");
+            await command.RespondAsync($"Failed to initiate support channel in {channel.Mention}.", ephemeral: true);
         }
 
         public static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
@@ -375,7 +459,7 @@ namespace Support.Discord.Services
 
         private static Embed GetWatcherEmbedded(DiscordTicket ticket)
         {
-            var guild = client.GetGuild(ticket.GuildId);
+            var guild = GetGuildByProjectId(ticket.ProjectId);
             string name_prefix = "Unknown";
             switch (ticket.Type)
             {
@@ -402,7 +486,7 @@ namespace Support.Discord.Services
 
         private static async Task InformWatchers(DiscordTicket ticket)
         {
-            var guild = client.GetGuild(ticket.GuildId);
+            var guild = GetGuildByProjectId(ticket.ProjectId);
             foreach (ulong watcherId in ticket.Watchers)
             {
                 var user = guild.Users.First(x => x.Id == watcherId);
@@ -415,7 +499,7 @@ namespace Support.Discord.Services
 
         private static async Task UpdateTicket(DiscordTicket ticket)
         {
-            var guild = client.GetGuild(ticket.GuildId);
+            var guild = GetGuildByProjectId(ticket.ProjectId);
             var channel = GetSupportChannel(guild);
             if (channel == null)
             {
