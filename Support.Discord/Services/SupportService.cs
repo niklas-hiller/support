@@ -390,7 +390,7 @@ namespace Support.Discord.Services
             var builder = new EmbedBuilder();
             builder
                 .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
-                .WithTitle($"[Notification] A watched ticket was updated")
+                .WithTitle($"[Notification] Ticket {ticket.Id} was updated")
                 .WithDescription(
                 $"There was an update in **{guild.Name}** for the ticket **[{name_prefix}] {ticket.Title}**.\n\n" +
                 "**If you no longer want to be informed about the ticket, please select unwatch on the ticket.**\n")
