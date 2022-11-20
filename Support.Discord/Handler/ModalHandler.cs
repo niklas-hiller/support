@@ -1,6 +1,6 @@
 ﻿using Discord.WebSocket;
 using Support.Discord.Services;
-using Support.Shared;
+using Support.Shared.Enums;
 
 namespace Support.Discord.Handler
 {

@@ -1,4 +1,6 @@
-﻿namespace Support.Shared
+﻿using Support.Shared.Enums;
+
+namespace Support.Shared
 {
     public class Ticket
     {

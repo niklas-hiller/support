@@ -6,7 +6,7 @@ using NLog;
 using Support.Discord.Enums;
 using Support.Discord.Exceptions;
 using Support.Discord.Services;
-using Support.Shared;
+using Support.Shared.Enums;
 
 namespace Support.Discord.Handler
 {

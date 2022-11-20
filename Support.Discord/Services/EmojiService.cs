@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Support.Discord.Models;
-using Support.Shared;
+using Support.Shared.Enums;
 
 namespace Support.Discord.Services
 {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using NLog;
 using Support.Discord.Models;
 using Support.Shared;
+using Support.Shared.Enums;
 
 namespace Support.Discord.Services
 {

@@ -1,4 +1,5 @@
 ﻿using Support.Shared;
+using Support.Shared.Enums;
 
 namespace Support.Discord.Models
 {

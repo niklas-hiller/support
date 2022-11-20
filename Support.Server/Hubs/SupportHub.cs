@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Support.Shared;
+using Support.Shared.Enums;
 using System.Net.Sockets;
 
 namespace Support.Server.Hubs;

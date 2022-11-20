@@ -1,4 +1,4 @@
-﻿namespace Support.Shared
+﻿namespace Support.Shared.Enums
 {
     public enum ETicketPriority
     {
