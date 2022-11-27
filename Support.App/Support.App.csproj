@@ -49,6 +49,24 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\Images\blocker.png" />
+	  <None Remove="Resources\Images\bug.png" />
+	  <None Remove="Resources\Images\critical.png" />
+	  <None Remove="Resources\Images\high.png" />
+	  <None Remove="Resources\Images\highest.png" />
+	  <None Remove="Resources\Images\low.png" />
+	  <None Remove="Resources\Images\lowest.png" />
+	  <None Remove="Resources\Images\major.png" />
+	  <None Remove="Resources\Images\medium.png" />
+	  <None Remove="Resources\Images\minor.png" />
+	  <None Remove="Resources\Images\project.png" />
+	  <None Remove="Resources\Images\request.png" />
+	  <None Remove="Resources\Images\trivial.png" />
+	  <None Remove="Resources\Images\unknown.png" />
+	  <None Remove="Resources\Images\user.png" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
 	</ItemGroup>
 
