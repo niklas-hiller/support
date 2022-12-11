@@ -28,8 +28,8 @@ namespace Support.Discord.Handler
                 applicationCommandProperties.Add(command0.Build());
 
                 var command1 = new SlashCommandBuilder()
-                    .WithName("support-channel")
-                    .WithDescription("Initiates the support channel if it does not exist yet.")
+                    .WithName("ticket-channel")
+                    .WithDescription("Initiates the ticket channel if it does not exist yet.")
                     .AddOption(
                         name: "channel",
                         type: ApplicationCommandOptionType.Channel,
@@ -146,7 +146,7 @@ namespace Support.Discord.Handler
 
                         await HandleInitiateCommand(command);
                         break;
-                    case "support-channel":
+                    case "ticket-channel":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
                         await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
 
