@@ -207,12 +207,12 @@ namespace Support.Discord.Handler
 
         private static async Task HandleSynchronizeProjectCommand(SocketSlashCommand command)
         {
-            await SupportService.SynchronizeProjectToChannel(command);
+            await SupportService.SynchronizeProjectCommand(command);
         }
 
         private static async Task HandleUnsynchronizeProjectCommand(SocketSlashCommand command)
         {
-            await SupportService.UnsynchronizeProjectFromChannel(command);
+            await SupportService.UnsynchronizeProjectCommand(command);
         }
 
         private static async Task HandleUpdateCommand(SocketSlashCommand command)
