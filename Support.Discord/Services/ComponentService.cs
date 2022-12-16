@@ -1,12 +1,6 @@
 ﻿using Discord;
-using Discord.WebSocket;
 using Support.Discord.Models;
 using Support.Shared.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Support.Discord.Services
 {
