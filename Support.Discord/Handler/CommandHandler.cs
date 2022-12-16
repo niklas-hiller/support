@@ -21,27 +21,34 @@ namespace Support.Discord.Handler
             List<ApplicationCommandProperties> applicationCommandProperties = new();
             try
             {
-                var command0 = new SlashCommandBuilder()
-                    .WithName("initiate")
-                    .WithDescription("Initiates the project if it does not exist yet.")
-                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name of the project you initiate", isRequired: true);
-                applicationCommandProperties.Add(command0.Build());
+                var command00 = new SlashCommandBuilder()
+                    .WithName("create-project")
+                    .WithDescription("Initiates a project creation process.")
+                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name for the project", isRequired: true);
+                applicationCommandProperties.Add(command00.Build());
 
-                var command1 = new SlashCommandBuilder()
-                    .WithName("ticket-channel")
-                    .WithDescription("Initiates the ticket channel if it does not exist yet.")
-                    .AddOption(
-                        name: "channel",
-                        type: ApplicationCommandOptionType.Channel,
-                        description: "The channel which should be used to display live tickets",
-                        isRequired: true,
-                        channelTypes: new List<ChannelType>() { ChannelType.Text }
-                    );
-                applicationCommandProperties.Add(command1.Build());
+                var command01 = new SlashCommandBuilder()
+                    .WithName("delete-project")
+                    .WithDescription("Deletes a project by project id.")
+                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you with to delete", isRequired: true);
+                applicationCommandProperties.Add(command01.Build());
 
-                var command2 = new SlashCommandBuilder()
+                var command03 = new SlashCommandBuilder()
+                    .WithName("sync")
+                    .WithDescription("Syncs all activities regarding a project with the current channel.")
+                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you wish to sync with current channel", isRequired: true);
+                applicationCommandProperties.Add(command03.Build());
+
+                var command04 = new SlashCommandBuilder()
+                    .WithName("unsync")
+                    .WithDescription("Unsyncs a project if any syncs exist.")
+                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you wish to unsync", isRequired: true);
+                applicationCommandProperties.Add(command04.Build());
+
+                var command05 = new SlashCommandBuilder()
                     .WithName("create-ticket")
                     .WithDescription("Creates a new ticket.")
+                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project of the ticket you want to create", isRequired: true)
                     .AddOption(new SlashCommandOptionBuilder()
                         .WithName("type")
                         .WithDescription("The type of ticket you want to create")
@@ -50,9 +57,9 @@ namespace Support.Discord.Handler
                         .AddChoice(ETicketType.Request.ToString(), ETicketType.Request.ToString())
                         .WithType(ApplicationCommandOptionType.String)
                     );
-                applicationCommandProperties.Add(command2.Build());
+                applicationCommandProperties.Add(command05.Build());
 
-                var command3 = new SlashCommandBuilder()
+                var command06 = new SlashCommandBuilder()
                     .WithName("update-ticket")
                     .WithDescription("Updates a ticket.")
                     .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
@@ -82,13 +89,13 @@ namespace Support.Discord.Handler
                         .AddChoice(ETicketPriority.Blocker.ToString(), ETicketPriority.Blocker.ToString())
                         .WithType(ApplicationCommandOptionType.String)
                     );
-                applicationCommandProperties.Add(command3.Build());
+                applicationCommandProperties.Add(command06.Build());
 
-                var command4 = new SlashCommandBuilder()
+                var command07 = new SlashCommandBuilder()
                     .WithName("force-unwatch")
                     .WithDescription("Forces a ticket unwatch. Only recommended if normal select menu does not work!")
                     .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to unwatch", isRequired: true);
-                applicationCommandProperties.Add(command4.Build());
+                applicationCommandProperties.Add(command07.Build());
 
                 await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
                 logger.Info("Successfully updated all commands");
@@ -124,12 +131,6 @@ namespace Support.Discord.Handler
                         throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
                     }
                     break;
-                case ECommandRules.REQUIRES_SUPPORT_CHANNEL:
-                    if (!SupportService.HasSupportChannel((ulong)command.GuildId))
-                    {
-                        throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
-                    }
-                    break;
             }
         }
 
@@ -141,20 +142,28 @@ namespace Support.Discord.Handler
             {
                 switch (command.Data.Name)
                 {
-                    case "initiate":
+                    case "create-project":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
 
-                        await HandleInitiateCommand(command);
+                        await HandleCreateProjectCommand(command);
                         break;
-                    case "ticket-channel":
+                    case "delete-project":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
-                        await HandleCommandRules(command, ECommandRules.REQUIRES_INITIALIZE);
 
-                        await HandleSupportChannelCommand(command);
+                        await HandleDeleteProjectCommand(command);
+                        break;
+                    case "sync":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+
+                        await HandleSynchronizeProjectCommand(command);
+                        break;
+                    case "unsync":
+                        await HandleCommandRules(command, ECommandRules.NO_DM);
+
+                        await HandleUnsynchronizeProjectCommand(command);
                         break;
                     case "create-ticket":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
-                        await HandleCommandRules(command, ECommandRules.REQUIRES_SUPPORT_CHANNEL);
 
                         ETicketType type = TicketType.FromString(
                             HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
@@ -170,7 +179,6 @@ namespace Support.Discord.Handler
                         break;
                     case "update-ticket":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
-                        await HandleCommandRules(command, ECommandRules.REQUIRES_SUPPORT_CHANNEL);
 
                         await HandleUpdateCommand(command);
                         break;
@@ -186,14 +194,24 @@ namespace Support.Discord.Handler
 
         }
 
-        private static async Task HandleInitiateCommand(SocketSlashCommand command)
+        private static async Task HandleCreateProjectCommand(SocketSlashCommand command)
         {
             await SupportService.CreateProject(command);
         }
 
-        private static async Task HandleSupportChannelCommand(SocketSlashCommand command)
+        private static async Task HandleDeleteProjectCommand(SocketSlashCommand command)
         {
-            await SupportService.RegisterSupportChannel(command);
+            await SupportService.DeleteProject(command);
+        }
+
+        private static async Task HandleSynchronizeProjectCommand(SocketSlashCommand command)
+        {
+            await SupportService.SynchronizeProjectToChannel(command);
+        }
+
+        private static async Task HandleUnsynchronizeProjectCommand(SocketSlashCommand command)
+        {
+            await SupportService.UnsynchronizeProjectFromChannel(command);
         }
 
         private static async Task HandleUpdateCommand(SocketSlashCommand command)
@@ -219,9 +237,10 @@ namespace Support.Discord.Handler
 
         private static async Task HandleBugCommand(SocketSlashCommand command)
         {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
             var modal = new ModalBuilder()
                 .WithTitle("Create Ticket (Bug)")
-                .WithCustomId("bug-modal")
+                .WithCustomId($"bug-modal${projectId}")
                 .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
                 .AddTextInput("Environment", "environment", placeholder: "The environment information during the bug occurence, i.e. Software Version.", style: TextInputStyle.Paragraph, required: true)
                 .AddTextInput("Steps to reproduce", "steps", placeholder: "Steps to reproduce written down as bullet points.", style: TextInputStyle.Paragraph, required: true)
@@ -233,9 +252,10 @@ namespace Support.Discord.Handler
 
         private static async Task HandleRequestCommand(SocketSlashCommand command)
         {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
             var modal = new ModalBuilder()
                 .WithTitle("Create Ticket (Request)")
-                .WithCustomId("request-modal")
+                .WithCustomId($"request-modal${projectId}")
                 .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
                 .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
 

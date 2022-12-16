@@ -32,13 +32,37 @@ internal class SupportHub : Hub
     /// <param name="session"></param>
     /// <param name="projectCreate"></param>
     /// <returns>The created project</returns>
-    public async Task CreateNewProject(Session session, ProjectCreateRequest projectCreate)
+    public async Task CreateProject(Session session, ProjectCreateRequest projectCreate)
     {
         Project project = new Project(projectCreate.Name);
         projects.Add(project.Id, project);
         logger.LogInformation($"{session.Name} created a new Project '{project.Name}' ({project.Id})");
 
         await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectCreate.RequestId, project);
+    }
+
+    /// <summary>
+    /// Receives a project delete request from client.
+    /// Will delete a existing project with the given information of the request.
+    /// </summary>
+    /// <param name="session"></param>
+    /// <param name="projectDelete"></param>
+    /// <returns>The created project</returns>
+    public async Task DeleteProject(Session session, ProjectDeleteRequest projectDelete)
+    {
+        Project project = projects[projectDelete.ProjectId];
+        projects.Remove(project.Id);
+        logger.LogInformation($"{session.Name} deleted a Project '{project.Name}' ({project.Id})");
+
+        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectDelete.RequestId, project);
+    }
+
+    public async Task RetrieveProject(Session session, ProjectRetrieveRequest projectRetrieve)
+    {
+        Project project = projects[projectRetrieve.ProjectId];
+        logger.LogInformation($"{session.Name} retrieve a Project '{project.Name}' ({project.Id})");
+
+        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectRetrieve.RequestId, project);
     }
 
     /// <summary>
@@ -49,7 +73,7 @@ internal class SupportHub : Hub
     /// <param name="session"></param>
     /// <param name="ticketCreate"></param>
     /// <returns>The created ticket</returns>
-    public async Task SendTicketCreate(Session session, TicketCreateRequest ticketCreate)
+    public async Task TicketCreate(Session session, TicketCreateRequest ticketCreate)
     {
         logger.LogInformation($"Received new ticket from {session.Name}");
 
@@ -59,7 +83,7 @@ internal class SupportHub : Hub
         tickets.Add(ticket);
 
         logger.LogInformation($"Sending new ticket ({ticket.Id}) to all sessions in group '{SessionGroups.Listener}'");
-        await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicketCreate, ticket);
+        await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicket, ticket);
     }
 
     /// <summary>
@@ -70,7 +94,7 @@ internal class SupportHub : Hub
     /// <param name="session"></param>
     /// <param name="ticketUpdate"></param>
     /// <returns>The updated ticket</returns>
-    public async Task SendTicketUpdate(Session session, TicketUpdateRequest ticketUpdate)
+    public async Task TicketUpdate(Session session, TicketUpdateRequest ticketUpdate)
     {
         logger.LogInformation($"Received updated ticket ({ticketUpdate.Id}) from {session.Name}");
 
@@ -84,7 +108,7 @@ internal class SupportHub : Hub
             ticket.LastUpdatedAt = DateTimeOffset.Now;
 
             logger.LogInformation($"Sending updated ticket ({ticket.Id}) to all sessions in group '{SessionGroups.Listener}'");
-            await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicketUpdate, ticket);
+            await Clients.Group(SessionGroups.Listener).SendAsync(ServerBroadcasts.SendTicket, ticket);
         }
         catch (InvalidOperationException e)
         {
