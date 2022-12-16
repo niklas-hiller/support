@@ -24,7 +24,8 @@ namespace Support.Discord.Handler
                 var command00 = new SlashCommandBuilder()
                     .WithName("create-project")
                     .WithDescription("Initiates a project creation process.")
-                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name for the project", isRequired: true);
+                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name for the project", isRequired: true)
+                    .AddOption("sync", ApplicationCommandOptionType.Boolean, "If you directly want to sync the project with current channel", isRequired: true);
                 applicationCommandProperties.Add(command00.Build());
 
                 var command01 = new SlashCommandBuilder()

@@ -135,7 +135,14 @@ namespace Support.Discord.Services
                 projectCreateQueue.Remove(requestId);
 
                 DiscordProject discordProject = new DiscordProject(project, correspondingCommand.User.Id);
-                
+
+                var isSync = (bool)HelperService.GetDataObjectFromSlashCommand(correspondingCommand, "sync");
+                if (isSync)
+                {
+                    discordProject.GuildId = correspondingCommand.GuildId;
+                    discordProject.ChannelId = correspondingCommand.ChannelId;
+                }
+
                 projects.Add(discordProject);
                 await correspondingCommand.RespondAsync($"Successfully created your project '{project.Name}'. ({project.Id})", ephemeral: true);
             }
