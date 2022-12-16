@@ -80,7 +80,7 @@ namespace Support.Discord.Services
             }
         }
 
-        private static async Task TransmitProjectCreate(ProjectCreateRequest projectCreateRequest)
+        private static async Task TransmitProject(ProjectCreateRequest projectCreateRequest)
         {
             logger.Info($"Sending Project ({projectCreateRequest.Name}) create to server");
             await hubConnection.SendAsync(
@@ -90,17 +90,7 @@ namespace Support.Discord.Services
             );
         }
 
-        public static async Task CreateProject(SocketSlashCommand command)
-        {
-            var projectName = HelperService.GetDataObjectFromSlashCommand(command, "project-name").ToString();
-
-            ProjectCreateRequest request = new ProjectCreateRequest(projectName);
-            projectCreateQueue.Add(request.RequestId, command);
-
-            await TransmitProjectCreate(request);
-        }
-
-        private static async Task TransmitProjectDelete(ProjectDeleteRequest projectDeleteRequest)
+        private static async Task TransmitProject(ProjectDeleteRequest projectDeleteRequest)
         {
             logger.Info($"Sending Project ({projectDeleteRequest.ProjectId}) delete to server");
             await hubConnection.SendAsync(
@@ -108,16 +98,6 @@ namespace Support.Discord.Services
                 session,
                 projectDeleteRequest
             );
-        }
-
-        public static async Task DeleteProject(SocketSlashCommand command)
-        {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-
-            ProjectDeleteRequest request = new ProjectDeleteRequest(projectId);
-            projectDeleteQueue.Add(request.RequestId, command);
-
-            await TransmitProjectDelete(request);
         }
 
         private static async Task ReceiveProject(string requestId, Project project)
@@ -240,7 +220,7 @@ namespace Support.Discord.Services
             await modal.RespondAsync($"Successfully submitted your ticket.", ephemeral: true);
         }
 
-        public static async Task InitiateTransmitUpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
+        private static async Task InitiateTransmitUpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
         {
             if (GetTicketById(ticketId) == null) throw new KeyNotFoundException();
 
@@ -296,26 +276,6 @@ namespace Support.Discord.Services
             return false;
         }
 
-        public static async Task SynchronizeProjectCommand(SocketSlashCommand command)
-        {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            if (command.GuildId != null && command.ChannelId != null && projectId != null)
-            {
-                DiscordProject project = GetProjectById(projectId);
-                if (SynchronizeProject(project, (ulong)command.GuildId, (ulong)command.ChannelId))
-                {
-                    await command.RespondAsync($"Successfully synchronized the project {projectId}.", ephemeral: true);
-                    return;
-                }
-                else
-                {
-                    await command.RespondAsync($"Failed to synchronize the project (ALready active synchronization).", ephemeral: true);
-                    return;
-                }
-            }
-            await command.RespondAsync($"Failed to synchronize the project (No guildId, channelId, or projectId provided).", ephemeral: true);
-        }
-
         private static bool UnsynchronizeProject(DiscordProject project)
         {
             if (project.GuildId != null && project.ChannelId != null)
@@ -349,25 +309,6 @@ namespace Support.Discord.Services
                 return true;
             }
             return false;
-        }
-
-        public static async Task UnsynchronizeProjectCommand(SocketSlashCommand command)
-        {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            if (projectId != null)
-            {
-                DiscordProject project = GetProjectById(projectId);
-                if (UnsynchronizeProject(project))
-                {
-                    await command.RespondAsync($"Successfully unsynchronized the project {projectId}.", ephemeral: true);
-                }
-                else
-                {
-                    await command.RespondAsync($"Failed to unsynchronize the project (No active synchronization).", ephemeral: true);
-                    return;
-                }
-            }
-            await command.RespondAsync($"Failed to unsynchronize the project (No project id provided).", ephemeral: true);
         }
 
         private static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
@@ -474,6 +415,142 @@ namespace Support.Discord.Services
             }
 
             await InformWatchers(ticket);
+        }
+
+        public static async Task CreateProjectCommand(SocketSlashCommand command)
+        {
+            var projectName = HelperService.GetDataObjectFromSlashCommand(command, "project-name").ToString();
+
+            ProjectCreateRequest request = new ProjectCreateRequest(projectName);
+            projectCreateQueue.Add(request.RequestId, command);
+
+            await TransmitProject(request);
+        }
+
+        public static async Task DeleteProjectCommand(SocketSlashCommand command)
+        {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+
+            ProjectDeleteRequest request = new ProjectDeleteRequest(projectId);
+            projectDeleteQueue.Add(request.RequestId, command);
+
+            await TransmitProject(request);
+        }
+
+        public static async Task CreateTicketCommand(SocketSlashCommand command)
+        {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            var modal = new ModalBuilder();
+            ETicketType type = TicketType.FromString(HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
+            switch (type)
+            {
+                case ETicketType.Bug:
+                    modal
+                        .WithTitle("Create Ticket (Bug)")
+                        .WithCustomId($"bug-modal${projectId}")
+                        .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
+                        .AddTextInput("Environment", "environment", placeholder: "The environment information during the bug occurence, i.e. Software Version.", style: TextInputStyle.Paragraph, required: true)
+                        .AddTextInput("Steps to reproduce", "steps", placeholder: "Steps to reproduce written down as bullet points.", style: TextInputStyle.Paragraph, required: true)
+                        .AddTextInput("Current Behaviour", "currentBehaviour", placeholder: "The behaviour that currently occurs.", style: TextInputStyle.Paragraph, required: true)
+                        .AddTextInput("Expected Behaviour", "expectedBehaviour", placeholder: "The behaviour you would expect to occur.", style: TextInputStyle.Paragraph, required: true);
+                    break;
+                case ETicketType.Request:
+                    modal
+                        .WithTitle("Create Ticket (Request)")
+                        .WithCustomId($"request-modal${projectId}")
+                        .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
+                        .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
+                    break;
+            }
+            await command.RespondWithModalAsync(modal.Build());
+        }
+
+        public static async Task UpdateTicketCommand(SocketSlashCommand command)
+        {
+            var statusStr = HelperService.GetDataObjectFromSlashCommand(command, "status").ToString() ?? "";
+            var status = TicketStatus.FromString(statusStr);
+
+            var priorityStr = HelperService.GetDataObjectFromSlashCommand(command, "priority").ToString() ?? "";
+            var priority = TicketPriority.FromString(priorityStr);
+
+            var ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
+
+            try
+            {
+                await InitiateTransmitUpdateTicket(ticketId, status, priority);
+                await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
+            }
+            catch (KeyNotFoundException e)
+            {
+                await command.RespondAsync($"Couldn't updated Ticket {ticketId}. (Ticket Id does not exist)", ephemeral: true);
+            }
+        }
+
+        public static async Task SynchronizeProjectCommand(SocketSlashCommand command)
+        {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            if (command.GuildId != null && command.ChannelId != null && projectId != null)
+            {
+                DiscordProject project = GetProjectById(projectId);
+                if (SynchronizeProject(project, (ulong)command.GuildId, (ulong)command.ChannelId))
+                {
+                    await command.RespondAsync($"Successfully synchronized the project {projectId}.", ephemeral: true);
+                    return;
+                }
+                else
+                {
+                    await command.RespondAsync($"Failed to synchronize the project (ALready active synchronization).", ephemeral: true);
+                    return;
+                }
+            }
+            await command.RespondAsync($"Failed to synchronize the project (No guildId, channelId, or projectId provided).", ephemeral: true);
+        }
+
+        public static async Task UnsynchronizeProjectCommand(SocketSlashCommand command)
+        {
+            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            if (projectId != null)
+            {
+                DiscordProject project = GetProjectById(projectId);
+                if (UnsynchronizeProject(project))
+                {
+                    await command.RespondAsync($"Successfully unsynchronized the project {projectId}.", ephemeral: true);
+                }
+                else
+                {
+                    await command.RespondAsync($"Failed to unsynchronize the project (No active synchronization).", ephemeral: true);
+                    return;
+                }
+            }
+            await command.RespondAsync($"Failed to unsynchronize the project (No project id provided).", ephemeral: true);
+        }
+
+        public static async Task ForceUnwatchCommand(SocketSlashCommand command)
+        {
+            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
+            try
+            {
+                bool success = SetWatchTicket(ticketId, command.User.Id, false);
+                if (success)
+                {
+                    await command.RespondAsync(
+                        $"Successfully force removed ticket {ticketId} from your watchlist.\n" +
+                        "Please keep in mind that the select menu of that ticket will still show 'Watching'.", ephemeral: true);
+                }
+                else
+                {
+                    await command.RespondAsync(
+                        $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                        "Reason: You are not watching that ticket. Are you sure you entered the right id?", ephemeral: true);
+                }
+
+            }
+            catch (KeyNotFoundException e)
+            {
+                await command.RespondAsync(
+                    $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
+                    "Reason: A ticket with the given Id does not exist. Maybe the ticket does not exist anymore?", ephemeral: true);
+            }
         }
     }
 }

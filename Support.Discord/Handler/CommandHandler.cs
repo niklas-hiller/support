@@ -166,22 +166,12 @@ namespace Support.Discord.Handler
                     case "create-ticket":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
 
-                        ETicketType type = TicketType.FromString(
-                            HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
-                        switch (type)
-                        {
-                            case ETicketType.Bug:
-                                await HandleBugCommand(command);
-                                break;
-                            case ETicketType.Request:
-                                await HandleRequestCommand(command);
-                                break;
-                        }
+                        await HandleCreateTicketCommand(command);
                         break;
                     case "update-ticket":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
 
-                        await HandleUpdateCommand(command);
+                        await HandleUpdateTicketCommand(command);
                         break;
                     case "force-unwatch":
                         await HandleForceUnwatchCommand(command);
@@ -196,100 +186,25 @@ namespace Support.Discord.Handler
         }
 
         private static async Task HandleCreateProjectCommand(SocketSlashCommand command)
-        {
-            await SupportService.CreateProject(command);
-        }
+        => await SupportService.CreateProjectCommand(command);
 
         private static async Task HandleDeleteProjectCommand(SocketSlashCommand command)
-        {
-            await SupportService.DeleteProject(command);
-        }
+        => await SupportService.DeleteProjectCommand(command);
 
         private static async Task HandleSynchronizeProjectCommand(SocketSlashCommand command)
-        {
-            await SupportService.SynchronizeProjectCommand(command);
-        }
+        => await SupportService.SynchronizeProjectCommand(command);
 
         private static async Task HandleUnsynchronizeProjectCommand(SocketSlashCommand command)
-        {
-            await SupportService.UnsynchronizeProjectCommand(command);
-        }
+        => await SupportService.UnsynchronizeProjectCommand(command);
 
-        private static async Task HandleUpdateCommand(SocketSlashCommand command)
-        {
-            var statusStr = HelperService.GetDataObjectFromSlashCommand(command, "status").ToString() ?? "";
-            var status = TicketStatus.FromString(statusStr);
+        private static async Task HandleCreateTicketCommand(SocketSlashCommand command)
+        => await SupportService.CreateTicketCommand(command);
 
-            var priorityStr = HelperService.GetDataObjectFromSlashCommand(command, "priority").ToString() ?? "";
-            var priority = TicketPriority.FromString(priorityStr);
-
-            var ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
-
-            try
-            {
-                await SupportService.InitiateTransmitUpdateTicket(ticketId, status, priority);
-                await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
-            }
-            catch (KeyNotFoundException e)
-            {
-                await command.RespondAsync($"Couldn't updated Ticket {ticketId}. (Ticket Id does not exist)", ephemeral: true);
-            }
-        }
-
-        private static async Task HandleBugCommand(SocketSlashCommand command)
-        {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            var modal = new ModalBuilder()
-                .WithTitle("Create Ticket (Bug)")
-                .WithCustomId($"bug-modal${projectId}")
-                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
-                .AddTextInput("Environment", "environment", placeholder: "The environment information during the bug occurence, i.e. Software Version.", style: TextInputStyle.Paragraph, required: true)
-                .AddTextInput("Steps to reproduce", "steps", placeholder: "Steps to reproduce written down as bullet points.", style: TextInputStyle.Paragraph, required: true)
-                .AddTextInput("Current Behaviour", "currentBehaviour", placeholder: "The behaviour that currently occurs.", style: TextInputStyle.Paragraph, required: true)
-                .AddTextInput("Expected Behaviour", "expectedBehaviour", placeholder: "The behaviour you would expect to occur.", style: TextInputStyle.Paragraph, required: true);
-
-            await command.RespondWithModalAsync(modal.Build());
-        }
-
-        private static async Task HandleRequestCommand(SocketSlashCommand command)
-        {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            var modal = new ModalBuilder()
-                .WithTitle("Create Ticket (Request)")
-                .WithCustomId($"request-modal${projectId}")
-                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
-                .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
-
-            await command.RespondWithModalAsync(modal.Build());
-        }
+        private static async Task HandleUpdateTicketCommand(SocketSlashCommand command)
+        => await SupportService.UpdateTicketCommand(command);
 
         private static async Task HandleForceUnwatchCommand(SocketSlashCommand command)
-        {
-            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
-            try
-            {
-                bool success = SupportService.SetWatchTicket(ticketId, command.User.Id, false);
-                if (success)
-                {
-                    await command.RespondAsync(
-                        $"Successfully force removed ticket {ticketId} from your watchlist.\n" +
-                        "Please keep in mind that the select menu of that ticket will still show 'Watching'.", ephemeral: true);
-                }
-                else
-                {
-                    await command.RespondAsync(
-                        $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
-                        "Reason: You are not watching that ticket. Are you sure you entered the right id?", ephemeral: true);
-                }
+        => await SupportService.ForceUnwatchCommand(command);
 
-            }
-            catch (KeyNotFoundException e)
-            {
-                await command.RespondAsync(
-                    $"Failed to force removed ticket {ticketId} from your watchlist.\n" +
-                    "Reason: A ticket with the given Id does not exist. Maybe the ticket does not exist anymore?", ephemeral: true);
-            }
-
-        }
     }
 }
