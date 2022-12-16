@@ -33,7 +33,7 @@ namespace Support.Discord
 
             client.ModalSubmitted += ModalHandler.HandleModal;
 
-            client.SelectMenuExecuted += MenuHandler.HandleMenu;
+            client.SelectMenuExecuted += ComponentHandler.HandleMenu;
 
             await client.SetGameAsync("if tickets were updated...", type: ActivityType.Watching);
 

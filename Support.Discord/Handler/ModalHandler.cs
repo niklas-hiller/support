@@ -8,16 +8,13 @@ namespace Support.Discord.Handler
     {
         public static async Task HandleModal(SocketModal modal)
         {
-            string[] data = modal.Data.CustomId.Split('$');
-            string? custom = data.Length > 1 ? data[1] : null;
-
-            switch (data[0])
+            switch (modal.Data.CustomId.Split('$')[0])
             {
                 case "bug-modal":
-                    await SupportService.CreateTicket(modal, custom, ETicketType.Bug);
+                    await SupportService.CreateTicketModal(modal);
                     break;
                 case "request-modal":
-                    await SupportService.CreateTicket(modal, custom, ETicketType.Request);
+                    await SupportService.CreateTicketModal(modal);
                     break;
             }
         }

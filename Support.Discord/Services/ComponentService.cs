@@ -101,7 +101,7 @@ namespace Support.Discord.Services
         private static void AttachTicketWatchComponent(ComponentBuilder builder, string ticketId)
         {
             var menuBuilder = new SelectMenuBuilder()
-                .WithCustomId($"watch-menu {ticketId}")
+                .WithCustomId($"watch-menu${ticketId}")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .AddOption("Don't Watch", "unwatch", "You will not be informed anytime the ticket gets updated", isDefault: true)

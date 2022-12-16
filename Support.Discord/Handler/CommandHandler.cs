@@ -126,12 +126,6 @@ namespace Support.Discord.Handler
                         throw new RuleException(ECommandRules.NO_DM);
                     }
                     break;
-                case ECommandRules.REQUIRES_INITIALIZE:
-                    if (!SupportService.HasProject((ulong)command.GuildId))
-                    {
-                        throw new RuleException(ECommandRules.REQUIRES_INITIALIZE);
-                    }
-                    break;
             }
         }
 

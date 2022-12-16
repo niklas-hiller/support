@@ -5,6 +5,7 @@ using NLog;
 using Support.Discord.Models;
 using Support.Shared;
 using Support.Shared.Enums;
+using System.Net.Sockets;
 
 namespace Support.Discord.Services
 {
@@ -67,7 +68,7 @@ namespace Support.Discord.Services
             }
         }
 
-        public static DiscordTicket? GetTicketById(string ticketId)
+        private static DiscordTicket? GetTicketById(string ticketId)
         {
             try
             {
@@ -195,29 +196,15 @@ namespace Support.Discord.Services
             await UpdateTicket(discordTicket);
         }
 
-        public static async Task CreateTicket(SocketModal modal, string? projectId, ETicketType type)
+        private static async Task CreateTicket(string projectId, ETicketType ticketType, string ticketName, Dictionary<string, string> customFields, string ticketAuthor)
         {
-            if (projectId == null)
-            {
-                await modal.RespondAsync($"Failed to submit your ticket. (Missing project id)", ephemeral: true);
-                return;
-            }
-
-            List<SocketMessageComponentData> components =
-                modal.Data.Components.ToList();
-
-            string name = components
-                .First(x => x.CustomId == "name").Value;
-            Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, type);
-
             DiscordProject project = GetProjectById(projectId);
 
             TicketCreateRequest request = new TicketCreateRequest(
-                ProjectId: project.Id, Type: type, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
-                Title: name, CustomFields: customFields, Author: modal.User.ToString());
+                ProjectId: project.Id, Type: ticketType, Status: ETicketStatus.Open, Priority: ETicketPriority.Unknown,
+                Title: ticketName, CustomFields: customFields, Author: ticketAuthor);
 
             await TransmitTicket(request);
-            await modal.RespondAsync($"Successfully submitted your ticket.", ephemeral: true);
         }
 
         private static async Task InitiateTransmitUpdateTicket(string ticketId, ETicketStatus newStatus, ETicketPriority newPriority)
@@ -252,11 +239,6 @@ namespace Support.Discord.Services
         {
             DiscordProject project = GetProjectById(projectId);
             return client.GetGuild((ulong)project.GuildId);
-        }
-
-        public static bool HasProject(ulong guildId)
-        {
-            return GetProjectFromGuild(guildId) != null;
         }
 
         private static bool SynchronizeProject(DiscordProject project, ulong guildId, ulong channelId)
@@ -339,7 +321,7 @@ namespace Support.Discord.Services
             return dictionary;
         }
 
-        public static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
+        private static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
         {
             DiscordTicket? ticket = GetTicketById(ticketId);
             if (ticket == null) throw new KeyNotFoundException();
@@ -415,6 +397,56 @@ namespace Support.Discord.Services
             }
 
             await InformWatchers(ticket);
+        }
+
+        public static async Task WatchComponent(SocketMessageComponent menu)
+        {
+            bool isWatching = string.Join(", ", menu.Data.Values) == "watch" ? true : false;
+            string ticketId = menu.Data.CustomId.Split(" ")[1];
+
+            SetWatchTicket(ticketId, menu.User.Id, isWatching);
+            if (isWatching)
+            {
+                await menu.RespondAsync($"You will now be informed if there's any update regarding the ticket {ticketId}", ephemeral: true);
+            }
+            else
+            {
+                await menu.RespondAsync($"You will no longer be informed if there's any update regarding the ticket {ticketId}", ephemeral: true);
+            }
+        }
+
+        public static async Task CreateTicketModal(SocketModal modal)
+        {
+            string[] data = modal.Data.CustomId.Split('$');
+            string? projectId = data.Length > 1 ? data[1] : null;
+            ETicketType ticketType = ETicketType.Unknown;
+
+            switch (data[0])
+            {
+                case "bug-modal":
+                    ticketType = ETicketType.Bug;
+                    break;
+                case "request-modal":
+                    ticketType = ETicketType.Request;
+                    break;
+            }
+
+            if (projectId == null)
+            {
+                await modal.RespondAsync($"Failed to submit your ticket. (Missing project id)", ephemeral: true);
+                return;
+            }
+
+            List<SocketMessageComponentData> components =
+                modal.Data.Components.ToList();
+
+            string ticketName = components.First(x => x.CustomId == "name").Value;
+            Dictionary<string, string> customFields = GetTicketCustomFieldsFromComponent(components, ticketType);
+            string ticketAuthor = modal.User.ToString();
+
+            await CreateTicket(projectId, ticketType, ticketName, customFields, ticketAuthor);
+
+            await modal.RespondAsync($"Successfully submitted your ticket.", ephemeral: true);
         }
 
         public static async Task CreateProjectCommand(SocketSlashCommand command)
