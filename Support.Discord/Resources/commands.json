@@ -1,0 +1,458 @@
+[
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "create-project"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Creates a new project.",
+        "de": "Erstellt ein neues Projekt."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "project-name"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The name for the project.",
+            "de": "Der Name für das Projekt."
+          }
+        },
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "sync"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "If you want to synchronize the project with current channel.",
+            "de": "Ob das neue Projekt mit dem aktuellen Kanal synchronisiert werden soll."
+          }
+        },
+        "required": true,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "delete-project"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Deletes a project.",
+        "de": "Löscht ein Projekt."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "project-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The project that should be deleted.",
+            "de": "Das Projekt, dass gelöscht werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "sync"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Synchronizes a project with the current channel.",
+        "de": "Synchonisiert ein Projekt mit dem aktuellen Kanal."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "project-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The project that should be synchronized.",
+            "de": "Das Projekt, dass synchronisiert werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "unsync"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Unsynchronizes a project.",
+        "de": "Hebt die Synchronisierung eines Projekts auf."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "project-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The project that should be unsynchronized.",
+            "de": "Das Projekt, dass unsynchronisiert werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "create-ticket"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Creates a new ticket.",
+        "de": "Erstellt ein neues Ticket."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "project-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The project, where you want to create a ticket.",
+            "de": "Das Projekt, in dem ein Ticket erstellt werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "type"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The type of ticket you want to create.",
+            "de": "Der Typ des zu erstellenden Tickets."
+          }
+        },
+        "required": true,
+        "type": "string",
+        "choices": [
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Bug"
+              }
+            },
+            "value": "bug"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Request"
+              }
+            },
+            "value": "request"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "update-ticket"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Updates a ticket.",
+        "de": "Aktualisiert ein Ticket."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "ticket-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The ticket you want to update.",
+            "de": "Das Ticket, dass aktualisiert werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "status"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The new status of the ticket.",
+            "de": "Der neue Status des Ticket."
+          }
+        },
+        "required": true,
+        "type": "string",
+        "choices": [
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Open"
+              }
+            },
+            "value": "open"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "In Progress"
+              }
+            },
+            "value": "in_progress"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Done"
+              }
+            },
+            "value": "done"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Declined"
+              }
+            },
+            "value": "declined"
+          }
+        ]
+      },
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "priority"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The new priority of the ticket.",
+            "de": "Die neue Priorität des Ticket."
+          }
+        },
+        "required": true,
+        "type": "string",
+        "choices": [
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Trivial"
+              }
+            },
+            "value": "trivial"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Minor"
+              }
+            },
+            "value": "minor"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Lowest"
+              }
+            },
+            "value": "lowest"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Low"
+              }
+            },
+            "value": "low"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Medium"
+              }
+            },
+            "value": "medium"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "High"
+              }
+            },
+            "value": "high"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Highest"
+              }
+            },
+            "value": "highest"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Major"
+              }
+            },
+            "value": "major"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Critical"
+              }
+            },
+            "value": "critical"
+          },
+          {
+            "name": {
+              "default": "en-US",
+              "localization": {
+                "en-US": "Blocker"
+              }
+            },
+            "value": "blocker"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "force-unwatch"
+      }
+    },
+    "description": {
+      "default": "en-US",
+      "localization": {
+        "en-US": "Forces a ticket unwatch.",
+        "de": "Erzwingt das ein Ticket nicht mehr beobachtet wird."
+      }
+    },
+    "options": [
+      {
+        "name": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "ticket-id"
+          }
+        },
+        "description": {
+          "default": "en-US",
+          "localization": {
+            "en-US": "The ticket that should be unwatched.",
+            "de": "Das Ticket, dass nicht mehr beobachtet werden soll."
+          }
+        },
+        "required": true,
+        "type": "string"
+      }
+    ]
+  }
+]

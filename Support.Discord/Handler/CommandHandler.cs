@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using NLog;
 using Support.Discord.Enums;
 using Support.Discord.Exceptions;
+using Support.Discord.Models;
 using Support.Discord.Services;
 using Support.Shared.Enums;
 
@@ -18,102 +19,65 @@ namespace Support.Discord.Handler
 
         public static async Task InitializeCommands()
         {
-            List<ApplicationCommandProperties> applicationCommandProperties = new();
+            #region Load commands.json
+            List<DiscordCommand> commands = 
+                JsonConvert.DeserializeObject<List<DiscordCommand>>(File.ReadAllText("commands.json")) 
+                ?? new List<DiscordCommand>();
+            #endregion
+
+            #region Construct Commands
+            ApplicationCommandProperties[] applicationCommandProperties = commands.Select(command =>
+            {
+                logger.Info($"Loading command {command.Name.LocalizedDefault()}...");
+                try
+                {
+                    SlashCommandBuilder commandBuilder = new SlashCommandBuilder();
+                    commandBuilder.WithName(command.Name.LocalizedDefault());
+                    commandBuilder.WithNameLocalizations(command.Name.Localization);
+                    commandBuilder.WithDescription(command.Description.LocalizedDefault());
+                    commandBuilder.WithDescriptionLocalizations(command.Description.Localization);
+                    command.Options.ForEach(option =>
+                    {
+                        SlashCommandOptionBuilder optionBuilder = new SlashCommandOptionBuilder();
+                        optionBuilder.WithName(option.Name.LocalizedDefault());
+                        optionBuilder.WithNameLocalizations(option.Name.Localization);
+                        optionBuilder.WithDescription(option.Description.LocalizedDefault());
+                        optionBuilder.WithDescriptionLocalizations(option.Description.Localization);
+                        optionBuilder.WithRequired(option.Required);
+                        optionBuilder.WithType(option.OptionType());
+                        option.Choices.ForEach(choice =>
+                        {
+                            optionBuilder.AddChoice(
+                                name: choice.Name.LocalizedDefault(),
+                                value: choice.Value,
+                                nameLocalizations: choice.Name.Localization);
+                        });
+                        commandBuilder.AddOption(optionBuilder);
+                    });
+                    logger.Info($"...Successful!");
+                    return commandBuilder.Build();
+                } 
+                catch(Exception)
+                {
+                    logger.Error($"...Failed!");
+                    throw;
+                }
+            }).Where(property => property != null).ToArray();
+            #endregion
+
+            #region Send Commands to Discord
+            logger.Info($"Sending commands to Discord...");
             try
             {
-                var command00 = new SlashCommandBuilder()
-                    .WithName("create-project")
-                    .WithDescription("Initiates a project creation process.")
-                    .AddOption("project-name", ApplicationCommandOptionType.String, "The name for the project", isRequired: true)
-                    .AddOption("sync", ApplicationCommandOptionType.Boolean, "If you directly want to sync the project with current channel", isRequired: true);
-                applicationCommandProperties.Add(command00.Build());
-
-                var command01 = new SlashCommandBuilder()
-                    .WithName("delete-project")
-                    .WithDescription("Deletes a project by project id.")
-                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you with to delete", isRequired: true);
-                applicationCommandProperties.Add(command01.Build());
-
-                var command03 = new SlashCommandBuilder()
-                    .WithName("sync")
-                    .WithDescription("Syncs all activities regarding a project with the current channel.")
-                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you wish to sync with current channel", isRequired: true);
-                applicationCommandProperties.Add(command03.Build());
-
-                var command04 = new SlashCommandBuilder()
-                    .WithName("unsync")
-                    .WithDescription("Unsyncs a project if any syncs exist.")
-                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project you wish to unsync", isRequired: true);
-                applicationCommandProperties.Add(command04.Build());
-
-                var command05 = new SlashCommandBuilder()
-                    .WithName("create-ticket")
-                    .WithDescription("Creates a new ticket.")
-                    .AddOption("project-id", ApplicationCommandOptionType.String, "The project of the ticket you want to create", isRequired: true)
-                    .AddOption(new SlashCommandOptionBuilder()
-                        .WithName("type")
-                        .WithDescription("The type of ticket you want to create")
-                        .WithRequired(true)
-                        .AddChoice(ETicketType.Bug.ToString(), ETicketType.Bug.ToString())
-                        .AddChoice(ETicketType.Request.ToString(), ETicketType.Request.ToString())
-                        .WithType(ApplicationCommandOptionType.String)
-                    );
-                applicationCommandProperties.Add(command05.Build());
-
-                var command06 = new SlashCommandBuilder()
-                    .WithName("update-ticket")
-                    .WithDescription("Updates a ticket.")
-                    .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to update", isRequired: true)
-                    .AddOption(new SlashCommandOptionBuilder()
-                        .WithName("status")
-                        .WithDescription("The status you wish to update the ticket to")
-                        .WithRequired(true)
-                        .AddChoice(ETicketStatus.Open.ToString(), ETicketStatus.Open.ToString())
-                        .AddChoice(ETicketStatus.In_Progress.ToString().Replace("_", " "), ETicketStatus.In_Progress.ToString().Replace("_", ""))
-                        .AddChoice(ETicketStatus.Done.ToString(), ETicketStatus.Done.ToString())
-                        .AddChoice(ETicketStatus.Declined.ToString(), ETicketStatus.Declined.ToString())
-                        .WithType(ApplicationCommandOptionType.String)
-                    )
-                    .AddOption(new SlashCommandOptionBuilder()
-                        .WithName("priority")
-                        .WithDescription("The priority you wish to update the ticket to")
-                        .WithRequired(true)
-                        .AddChoice(ETicketPriority.Trivial.ToString(), ETicketPriority.Trivial.ToString())
-                        .AddChoice(ETicketPriority.Minor.ToString(), ETicketPriority.Minor.ToString())
-                        .AddChoice(ETicketPriority.Lowest.ToString(), ETicketPriority.Lowest.ToString())
-                        .AddChoice(ETicketPriority.Low.ToString(), ETicketPriority.Low.ToString())
-                        .AddChoice(ETicketPriority.Medium.ToString(), ETicketPriority.Medium.ToString())
-                        .AddChoice(ETicketPriority.High.ToString(), ETicketPriority.High.ToString())
-                        .AddChoice(ETicketPriority.Highest.ToString(), ETicketPriority.Highest.ToString())
-                        .AddChoice(ETicketPriority.Major.ToString(), ETicketPriority.Major.ToString())
-                        .AddChoice(ETicketPriority.Critical.ToString(), ETicketPriority.Critical.ToString())
-                        .AddChoice(ETicketPriority.Blocker.ToString(), ETicketPriority.Blocker.ToString())
-                        .WithType(ApplicationCommandOptionType.String)
-                    );
-                applicationCommandProperties.Add(command06.Build());
-
-                var command07 = new SlashCommandBuilder()
-                    .WithName("force-unwatch")
-                    .WithDescription("Forces a ticket unwatch. Only recommended if normal select menu does not work!")
-                    .AddOption("ticket", ApplicationCommandOptionType.String, "The ticket id you wish to unwatch", isRequired: true);
-                applicationCommandProperties.Add(command07.Build());
-
-                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
-                logger.Info("Successfully updated all commands");
-
-                // With global commands we don't need the guild.
-                // await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
-                // Using the ready event is a simple implementation for the sake of the example. Suitable for testing and development.
-                // For a production bot, it is recommended to only run the CreateGlobalApplicationCommandAsync() once for each command.
+                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties);
+                logger.Info("...Successful!");
             }
-            catch (HttpException exception)
+            catch (Exception)
             {
-                // If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
-                var json = JsonConvert.SerializeObject(exception.Errors, Formatting.Indented);
-
-                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                logger.Info(json);
+                logger.Error($"...Failed!");
+                throw;
             }
+            #endregion
         }
 
         public static async Task HandleCommandRules(SocketSlashCommand command, ECommandRules rule)
