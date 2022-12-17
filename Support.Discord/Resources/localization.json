@@ -1,0 +1,172 @@
+{
+  "ticket-id": {
+    "en-US": "ticket-id"
+  },
+  "project-name": {
+    "en-US": "project-name"
+  },
+  "sync": {
+    "en-US": "sync"
+  },
+  "project-id": {
+    "en-US": "project-id"
+  },
+  "type": {
+    "en-US": "type"
+  },
+  "type.bug": {
+    "en-US": "Bug"
+  },
+  "type.request": {
+    "en-US": "Request"
+  },
+  "status": {
+    "en-US": "status"
+  },
+  "status.open": {
+    "en-US": "Open"
+  },
+  "status.in_progress": {
+    "en-US": "In Progress"
+  },
+  "status.done": {
+    "en-US": "Done"
+  },
+  "status.declined": {
+    "en-US": "Declined"
+  },
+  "priority": {
+    "en-US": "priority"
+  },
+  "priority.trivial": {
+    "en-US": "Trivial"
+  },
+  "priority.minor": {
+    "en-US": "Minor"
+  },
+  "priority.lowest": {
+    "en-US": "Lowest"
+  },
+  "priority.low": {
+    "en-US": "Low"
+  },
+  "priority.medium": {
+    "en-US": "Medium"
+  },
+  "priority.high": {
+    "en-US": "High"
+  },
+  "priority.highest": {
+    "en-US": "Highest"
+  },
+  "priority.major": {
+    "en-US": "Major"
+  },
+  "priority.critical": {
+    "en-US": "Critical"
+  },
+  "priority.blocker": {
+    "en-US": "Blocker"
+  },
+
+  "create-project": {
+    "en-US": "create-project"
+  },
+  "create-project.description": {
+    "en-US": "Creates a new project.",
+    "de": "Erstellt ein neues Projekt."
+  },
+  "create-project.project-name.description": {
+    "en-US": "The name for the project.",
+    "de": "Der Name für das Projekt."
+  },
+  "create-project.sync.description": {
+    "en-US": "If you want to synchronize the project with current channel.",
+    "de": "Ob das neue Projekt mit dem aktuellen Kanal synchronisiert werden soll."
+  },
+
+  "delete-project": {
+    "en-US": "delete-project"
+  },
+  "delete-project.description": {
+    "en-US": "Deletes a project.",
+    "de": "Löscht ein Projekt."
+  },
+  "delete-project.project-id.description": {
+    "en-US": "The project that should be deleted.",
+    "de": "Das Projekt, dass gelöscht werden soll."
+  },
+
+  "synchronize-project": {
+    "en-US": "synchronize-project"
+  },
+  "synchronize-project.description": {
+    "en-US": "Synchronizes a project with the current channel.",
+    "de": "Synchonisiert ein Projekt mit dem aktuellen Kanal."
+  },
+  "synchronize-project.project-id.description": {
+    "en-US": "The project that should be synchronized.",
+    "de": "Das Projekt, dass synchronisiert werden soll."
+  },
+
+  "unsynchronize-project": {
+    "en-US": "unsynchronize-project"
+  },
+  "unsynchronize-project.description": {
+    "en-US": "Unsynchronizes a project.",
+    "de": "Hebt die Synchronisierung eines Projekts auf."
+  },
+  "unsynchronize-project.project-id.description": {
+    "en-US": "The project that should be unsynchronized.",
+    "de": "Das Projekt, dass unsynchronisiert werden soll."
+  },
+
+  "create-ticket": {
+    "en-US": "create-ticket"
+  },
+  "create-ticket.description": {
+    "en-US": "Creates a new ticket.",
+    "de": "Erstellt ein neues Ticket."
+  },
+  "create-ticket.project-id.description": {
+    "en-US": "The project, where you want to create a ticket.",
+    "de": "Das Projekt, in dem ein Ticket erstellt werden soll."
+  },
+  "create-ticket.type.description": {
+    "en-US": "The type of ticket you want to create.",
+    "de": "Der Typ des zu erstellenden Tickets."
+  },
+
+  "update-ticket": {
+    "en-US": "update-ticket"
+  },
+  "update-ticket.description": {
+    "en-US": "Updates a ticket.",
+    "de": "Aktualisiert ein Ticket."
+  },
+  "update-ticket.ticket-id.description": {
+    "en-US": "The ticket you want to update.",
+    "de": "Das Ticket, dass aktualisiert werden soll."
+  },
+  "update-ticket.status.description": {
+    "en-US": "The new status of the ticket.",
+    "de": "Der neue Status des Ticket."
+  },
+  "update-ticket.priority.description": {
+    "en-US": "The new priority of the ticket.",
+    "de": "Die neue Priorität des Ticket."
+  },
+
+  "force-unwatch": {
+    "en-US": "force-unwatch"
+  },
+  "force-unwatch.description": {
+    "en-US": "Forces a ticket unwatch.",
+    "de": "Erzwingt das ein Ticket nicht mehr beobachtet wird."
+  },
+  "force-unwatch.ticket-id.description": {
+    "en-US": "The ticket that should be unwatched.",
+    "de": "Das Ticket, dass nicht mehr beobachtet werden soll."
+  }
+
+}

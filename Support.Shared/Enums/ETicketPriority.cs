@@ -32,7 +32,7 @@ namespace Support.Shared.Enums
     {
         public static ETicketPriority FromString(string priority)
         {
-            switch (priority.ToLower().Replace(" ", ""))
+            switch (priority.ToLower())
             {
                 case "trivial":
                     return ETicketPriority.Trivial;

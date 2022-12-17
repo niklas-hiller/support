@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using NLog;
@@ -7,7 +6,6 @@ using Support.Discord.Enums;
 using Support.Discord.Exceptions;
 using Support.Discord.Models;
 using Support.Discord.Services;
-using Support.Shared.Enums;
 
 namespace Support.Discord.Handler
 {
@@ -20,44 +18,44 @@ namespace Support.Discord.Handler
         public static async Task InitializeCommands()
         {
             #region Load commands.json
-            List<DiscordCommand> commands = 
-                JsonConvert.DeserializeObject<List<DiscordCommand>>(File.ReadAllText("commands.json")) 
+            List<DiscordCommand> commands =
+                JsonConvert.DeserializeObject<List<DiscordCommand>>(File.ReadAllText("commands.json"))
                 ?? new List<DiscordCommand>();
             #endregion
 
             #region Construct Commands
             ApplicationCommandProperties[] applicationCommandProperties = commands.Select(command =>
             {
-                logger.Info($"Loading command {command.Name.LocalizedDefault()}...");
+                logger.Info($"Loading command {command.Name.LocalizedValue()}...");
                 try
                 {
                     SlashCommandBuilder commandBuilder = new SlashCommandBuilder();
-                    commandBuilder.WithName(command.Name.LocalizedDefault());
-                    commandBuilder.WithNameLocalizations(command.Name.Localization);
-                    commandBuilder.WithDescription(command.Description.LocalizedDefault());
-                    commandBuilder.WithDescriptionLocalizations(command.Description.Localization);
+                    commandBuilder.WithName(command.Name.LocalizedValue());
+                    commandBuilder.WithNameLocalizations(command.Name.LocalizedValues());
+                    commandBuilder.WithDescription(command.Description.LocalizedValue());
+                    commandBuilder.WithDescriptionLocalizations(command.Description.LocalizedValues());
                     command.Options.ForEach(option =>
                     {
                         SlashCommandOptionBuilder optionBuilder = new SlashCommandOptionBuilder();
-                        optionBuilder.WithName(option.Name.LocalizedDefault());
-                        optionBuilder.WithNameLocalizations(option.Name.Localization);
-                        optionBuilder.WithDescription(option.Description.LocalizedDefault());
-                        optionBuilder.WithDescriptionLocalizations(option.Description.Localization);
+                        optionBuilder.WithName(option.Name.LocalizedValue());
+                        optionBuilder.WithNameLocalizations(option.Name.LocalizedValues());
+                        optionBuilder.WithDescription(option.Description.LocalizedValue());
+                        optionBuilder.WithDescriptionLocalizations(option.Description.LocalizedValues());
                         optionBuilder.WithRequired(option.Required);
                         optionBuilder.WithType(option.OptionType());
                         option.Choices.ForEach(choice =>
                         {
                             optionBuilder.AddChoice(
-                                name: choice.Name.LocalizedDefault(),
+                                name: choice.Name.LocalizedValue(),
                                 value: choice.Value,
-                                nameLocalizations: choice.Name.Localization);
+                                nameLocalizations: choice.Name.LocalizedValues());
                         });
                         commandBuilder.AddOption(optionBuilder);
                     });
                     logger.Info($"...Successful!");
                     return commandBuilder.Build();
-                } 
-                catch(Exception)
+                }
+                catch (Exception)
                 {
                     logger.Error($"...Failed!");
                     throw;

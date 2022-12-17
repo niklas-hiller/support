@@ -2,31 +2,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "create-project"
-      }
+      "localization": "create-project"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Creates a new project.",
-        "de": "Erstellt ein neues Projekt."
-      }
+      "localization": "create-project.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "project-name"
-          }
+          "localization": "project-name"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The name for the project.",
-            "de": "Der Name für das Projekt."
-          }
+          "localization": "create-project.project-name.description"
         },
         "required": true,
         "type": "string"
@@ -34,16 +24,11 @@
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "sync"
-          }
+          "localization": "sync"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "If you want to synchronize the project with current channel.",
-            "de": "Ob das neue Projekt mit dem aktuellen Kanal synchronisiert werden soll."
-          }
+          "localization": "create-project.sync.description"
         },
         "required": true,
         "type": "boolean"
@@ -53,31 +38,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "delete-project"
-      }
+      "localization": "delete-project"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Deletes a project.",
-        "de": "Löscht ein Projekt."
-      }
+      "localization": "delete-project.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "project-id"
-          }
+          "localization": "project-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The project that should be deleted.",
-            "de": "Das Projekt, dass gelöscht werden soll."
-          }
+          "localization": "delete-project.project-id.description"
         },
         "required": true,
         "type": "string"
@@ -87,31 +62,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "sync"
-      }
+      "localization": "synchronize-project"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Synchronizes a project with the current channel.",
-        "de": "Synchonisiert ein Projekt mit dem aktuellen Kanal."
-      }
+      "localization": "synchronize-project.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "project-id"
-          }
+          "localization": "project-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The project that should be synchronized.",
-            "de": "Das Projekt, dass synchronisiert werden soll."
-          }
+          "localization": "synchronize-project.project-id.description"
         },
         "required": true,
         "type": "string"
@@ -121,31 +86,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "unsync"
-      }
+      "localization": "unsynchronize-project"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Unsynchronizes a project.",
-        "de": "Hebt die Synchronisierung eines Projekts auf."
-      }
+      "localization": "unsynchronize-project.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "project-id"
-          }
+          "localization": "project-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The project that should be unsynchronized.",
-            "de": "Das Projekt, dass unsynchronisiert werden soll."
-          }
+          "localization": "unsynchronize-project.project-id.description"
         },
         "required": true,
         "type": "string"
@@ -155,31 +110,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "create-ticket"
-      }
+      "localization": "create-ticket"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Creates a new ticket.",
-        "de": "Erstellt ein neues Ticket."
-      }
+      "localization": "create-ticket.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "project-id"
-          }
+          "localization": "project-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The project, where you want to create a ticket.",
-            "de": "Das Projekt, in dem ein Ticket erstellt werden soll."
-          }
+          "localization": "create-ticket.project-id.description"
         },
         "required": true,
         "type": "string"
@@ -187,16 +132,11 @@
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "type"
-          }
+          "localization": "type"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The type of ticket you want to create.",
-            "de": "Der Typ des zu erstellenden Tickets."
-          }
+          "localization": "create-ticket.type.description"
         },
         "required": true,
         "type": "string",
@@ -204,18 +144,14 @@
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Bug"
-              }
+              "localization": "type.bug"
             },
             "value": "bug"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Request"
-              }
+              "localization": "type.request"
             },
             "value": "request"
           }
@@ -226,31 +162,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "update-ticket"
-      }
+      "localization": "update-ticket"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Updates a ticket.",
-        "de": "Aktualisiert ein Ticket."
-      }
+      "localization": "update-ticket.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "ticket-id"
-          }
+          "localization": "ticket-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The ticket you want to update.",
-            "de": "Das Ticket, dass aktualisiert werden soll."
-          }
+          "localization": "update-ticket.ticket-id.description"
         },
         "required": true,
         "type": "string"
@@ -258,16 +184,11 @@
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "status"
-          }
+          "localization": "status"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The new status of the ticket.",
-            "de": "Der neue Status des Ticket."
-          }
+          "localization": "update-ticket.status.description"
         },
         "required": true,
         "type": "string",
@@ -275,36 +196,28 @@
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Open"
-              }
+              "localization": "status.open"
             },
             "value": "open"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "In Progress"
-              }
+              "localization": "status.in_progress"
             },
             "value": "in_progress"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Done"
-              }
+              "localization": "status.done"
             },
             "value": "done"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Declined"
-              }
+              "localization": "status.declined"
             },
             "value": "declined"
           }
@@ -313,16 +226,11 @@
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "priority"
-          }
+          "localization": "priority"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The new priority of the ticket.",
-            "de": "Die neue Priorität des Ticket."
-          }
+          "localization": "update-ticket.priority.description"
         },
         "required": true,
         "type": "string",
@@ -330,90 +238,70 @@
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Trivial"
-              }
+              "localization": "priority.trivial"
             },
             "value": "trivial"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Minor"
-              }
+              "localization": "priority.minor"
             },
             "value": "minor"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Lowest"
-              }
+              "localization": "priority.lowest"
             },
             "value": "lowest"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Low"
-              }
+              "localization": "priority.low"
             },
             "value": "low"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Medium"
-              }
+              "localization": "priority.medium"
             },
             "value": "medium"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "High"
-              }
+              "localization": "priority.high"
             },
             "value": "high"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Highest"
-              }
+              "localization": "priority.highest"
             },
             "value": "highest"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Major"
-              }
+              "localization": "priority.major"
             },
             "value": "major"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Critical"
-              }
+              "localization": "priority.critical"
             },
             "value": "critical"
           },
           {
             "name": {
               "default": "en-US",
-              "localization": {
-                "en-US": "Blocker"
-              }
+              "localization": "priority.blocker"
             },
             "value": "blocker"
           }
@@ -424,31 +312,21 @@
   {
     "name": {
       "default": "en-US",
-      "localization": {
-        "en-US": "force-unwatch"
-      }
+      "localization": "force-unwatch"
     },
     "description": {
       "default": "en-US",
-      "localization": {
-        "en-US": "Forces a ticket unwatch.",
-        "de": "Erzwingt das ein Ticket nicht mehr beobachtet wird."
-      }
+      "localization": "force-unwatch.description"
     },
     "options": [
       {
         "name": {
           "default": "en-US",
-          "localization": {
-            "en-US": "ticket-id"
-          }
+          "localization": "ticket-id"
         },
         "description": {
           "default": "en-US",
-          "localization": {
-            "en-US": "The ticket that should be unwatched.",
-            "de": "Das Ticket, dass nicht mehr beobachtet werden soll."
-          }
+          "localization": "force-unwatch.ticket-id.description"
         },
         "required": true,
         "type": "string"

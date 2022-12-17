@@ -1,14 +1,24 @@
 ﻿using Discord;
+using Support.Discord.Services;
 
 namespace Support.Discord.Models
 {
     internal class LocalizedString
     {
         public string Default { get; set; }
-        public Dictionary<string, string> Localization { get; set; }
-        
-        public string LocalizedDefault() {
-            return Localization[Default];
+        public string Localization { get; set; }
+
+        public string LocalizedValue()
+        {
+            return LocalizationService.GetLocalized(Localization, Default);
+        }
+        public string LocalizedValue(string locale)
+        {
+            return LocalizationService.GetLocalized(Localization, locale);
+        }
+        public Dictionary<string, string> LocalizedValues()
+        {
+            return LocalizationService.GetLocalized(Localization);
         }
     }
 

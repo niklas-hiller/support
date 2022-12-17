@@ -20,11 +20,11 @@ namespace Support.Shared.Enums
     {
         public static ETicketStatus FromString(string status)
         {
-            switch (status.ToLower().Replace(" ", ""))
+            switch (status.ToLower())
             {
                 case "open":
                     return ETicketStatus.Open;
-                case "inprogress":
+                case "in_progress":
                     return ETicketStatus.In_Progress;
                 case "done":
                     return ETicketStatus.Done;

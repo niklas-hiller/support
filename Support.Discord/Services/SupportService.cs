@@ -505,7 +505,7 @@ namespace Support.Discord.Services
             var priorityStr = HelperService.GetDataObjectFromSlashCommand(command, "priority").ToString() ?? "";
             var priority = TicketPriority.FromString(priorityStr);
 
-            var ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
+            var ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket-id").ToString() ?? "0";
 
             try
             {
@@ -559,7 +559,7 @@ namespace Support.Discord.Services
 
         public static async Task ForceUnwatchCommand(SocketSlashCommand command)
         {
-            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket").ToString() ?? "0";
+            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket-id").ToString() ?? "0";
             try
             {
                 bool success = SetWatchTicket(ticketId, command.User.Id, false);
