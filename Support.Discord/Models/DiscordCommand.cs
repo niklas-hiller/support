@@ -5,8 +5,8 @@ namespace Support.Discord.Models
 {
     internal class LocalizedString
     {
-        public string Default { get; set; }
-        public string Localization { get; set; }
+        public string Default { get; set; } = "";
+        public string Localization { get; set; } = "";
 
         public string LocalizedValue()
         {
@@ -24,16 +24,16 @@ namespace Support.Discord.Models
 
     internal class DiscordCommandChoices
     {
-        public LocalizedString Name { get; set; }
-        public string Value { get; set; }
+        public LocalizedString Name { get; set; } = new();
+        public string Value { get; set; } = "";
     }
 
     internal class DiscordCommandOptions
     {
-        public LocalizedString Name { get; set; }
-        public LocalizedString Description { get; set; }
+        public LocalizedString Name { get; set; } = new();
+        public LocalizedString Description { get; set; } = new();
         public bool Required { get; set; } = false;
-        public string Type { get; set; }
+        public string Type { get; set; } = "string";
         public List<DiscordCommandChoices> Choices { get; set; } = new();
 
         public ApplicationCommandOptionType OptionType()
@@ -44,8 +44,8 @@ namespace Support.Discord.Models
 
     internal class DiscordCommand
     {
-        public LocalizedString Name { get; set; }
-        public LocalizedString Description { get; set; }
+        public LocalizedString Name { get; set; } = new();
+        public LocalizedString Description { get; set; } = new();
         public List<DiscordCommandOptions> Options { get; set; } = new();
     }
 }
