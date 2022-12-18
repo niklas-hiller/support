@@ -28,7 +28,11 @@ namespace Support.Discord.Services
 
         private static Emote? GetEmoji(string emojiName)
         {
-            var source = client.GetGuild(configuration.RootGuildId);
+            if (configuration.RootGuildId == null)
+            {
+                return null;
+            }
+            var source = client.GetGuild((ulong)configuration.RootGuildId);
             if (source == null) return null;
 
             var emoji = source.Emotes.FirstOrDefault(x => x.Name == emojiName, null);

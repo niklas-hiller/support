@@ -2,11 +2,22 @@
 
 namespace Support.Discord.Models
 {
+    internal class Synchronization
+    {
+        public readonly ulong GuildId;
+        public readonly ulong ChannelId;
+
+        public Synchronization(ulong guildId, ulong channelId) 
+        {
+            GuildId = guildId;
+            ChannelId = channelId;
+        }
+    }
+
     internal class DiscordProject : Project
     {
         public readonly ulong ProjectOwner;
-        public ulong? GuildId;
-        public ulong? ChannelId { get; set; }
+        public Synchronization? Synchronization;
         public new List<DiscordTicket> Tickets { get; protected set; } = new List<DiscordTicket>();
 
         public DiscordProject(Project project, ulong projectOwner)

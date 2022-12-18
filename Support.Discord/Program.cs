@@ -17,7 +17,9 @@ namespace Support.Discord
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static readonly BotConfiguration configuration = JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json"));
+        public static readonly BotConfiguration configuration = 
+            JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json"))
+            ?? new();
 
         public async Task MainAsync()
         {
@@ -32,10 +34,10 @@ namespace Support.Discord
 
             await client.SetGameAsync("if tickets were updated...", type: ActivityType.Watching);
 
-            // Some alternative options would be to keep your token in an Environment Variable or a standalone file.
-            // var token = Environment.GetEnvironmentVariable("NameOfYourEnvironmentVariable");
-            // var token = File.ReadAllText("token.txt");
-            // var token = JsonConvert.DeserializeObject<BotConfiguration>(File.ReadAllText("configuration.json")).Token;
+            if (configuration.Token == null)
+            {
+                throw new ArgumentNullException(nameof(configuration.Token));
+            }
 
             await client.LoginAsync(TokenType.Bot, configuration.Token);
             await client.StartAsync();

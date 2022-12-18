@@ -217,36 +217,22 @@ namespace Support.Discord.Services
             await TransmitTicket(request);
         }
 
-        private static DiscordProject? GetProjectFromGuild(ulong guildId)
-        {
-            try
-            {
-                return projects.First(x => x.GuildId == guildId);
-            }
-            catch (InvalidOperationException e)
-            {
-                logger.Warn($"Couldn't find a project with the guild id {guildId}");
-                return null;
-            }
-        }
-
         private static DiscordProject GetProjectById(string projectId)
         {
             return projects.First(x => x.Id == projectId);
         }
 
-        public static SocketGuild GetGuildByProjectId(string projectId)
+        public static SocketGuild? GetGuildByProjectId(string projectId)
         {
             DiscordProject project = GetProjectById(projectId);
-            return client.GetGuild((ulong)project.GuildId);
+            return project.Synchronization != null ? client.GetGuild(project.Synchronization.GuildId) : null;
         }
 
         private static bool SynchronizeProject(DiscordProject project, ulong guildId, ulong channelId)
         {
-            if (project.GuildId == null && project.ChannelId == null)
+            if (project.Synchronization == null)
             {
-                project.GuildId = guildId;
-                project.ChannelId = channelId;
+                project.Synchronization = new(guildId, channelId);
 
                 project.Tickets.ForEach(async ticket =>
                 {
@@ -260,10 +246,10 @@ namespace Support.Discord.Services
 
         private static bool UnsynchronizeProject(DiscordProject project)
         {
-            if (project.GuildId != null && project.ChannelId != null)
+            if (project.Synchronization != null)
             {
-                var guild = client.GetGuild((ulong)project.GuildId);
-                var channel = guild.GetTextChannel((ulong)project.ChannelId);
+                var guild = client.GetGuild(project.Synchronization.GuildId);
+                var channel = guild.GetTextChannel(project.Synchronization.ChannelId);
 
                 if (guild == null || channel == null)
                 {
@@ -285,8 +271,7 @@ namespace Support.Discord.Services
                     ticket.WatchMessageId = null;
                     ticket.Watchers = new List<ulong>();
                 });
-                project.GuildId = null;
-                project.ChannelId = null;
+                project.Synchronization = null;
 
                 return true;
             }
@@ -354,16 +339,14 @@ namespace Support.Discord.Services
         private static async Task UpdateTicket(DiscordTicket ticket)
         {
             DiscordProject project = GetProjectById(ticket.ProjectId);
-            if (project.GuildId == null || project.ChannelId == null)
+            if (project.Synchronization == null)
             {
                 logger.Warn($"Project {project.Id} is currently not synched!");
                 return;
             }
 
-            var guild = client.GetGuild((ulong)project.GuildId);
-            var channel = guild.GetTextChannel((ulong)project.ChannelId);
-
-
+            SocketGuild guild = client.GetGuild(project.Synchronization.GuildId);
+            SocketTextChannel channel = guild.GetTextChannel((ulong)project.Synchronization.ChannelId);
             if (guild == null || channel == null)
             {
                 logger.Warn($"Project {project.Id} has a broken sync!");

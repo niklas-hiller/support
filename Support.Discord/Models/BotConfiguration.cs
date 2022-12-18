@@ -2,7 +2,7 @@
 {
     internal class BotConfiguration
     {
-        public string Token { get; set; }
-        public ulong RootGuildId { get; set; }
+        public string? Token { get; set; }
+        public ulong? RootGuildId { get; set; }
     }
 }

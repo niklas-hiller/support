@@ -109,12 +109,12 @@ namespace Support.Discord.Handler
 
                         await HandleDeleteProjectCommand(command);
                         break;
-                    case "sync":
+                    case "synchronize-project":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleSynchronizeProjectCommand(command);
                         break;
-                    case "unsync":
+                    case "unsynchronize-project":
                         await HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleUnsynchronizeProjectCommand(command);
