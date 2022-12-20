@@ -25,12 +25,14 @@ namespace Support.Discord
         {
             LogManager.Configuration = new XmlLoggingConfiguration("NLog.config");
 
+            #region Client Events
             client.Log += Log;
             client.Ready += Client_Ready;
             client.SlashCommandExecuted += CommandHandler.HandleCommand;
             client.ButtonExecuted += ButtonHandler.HandleButton;
             client.ModalSubmitted += ModalHandler.HandleModal;
             client.SelectMenuExecuted += ComponentHandler.HandleMenu;
+            #endregion
 
             await client.SetGameAsync("if tickets were updated...", type: ActivityType.Watching);
 
