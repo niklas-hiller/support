@@ -2,14 +2,14 @@
 {
     public class ProjectCreateRequest
     {
-        public string RequestId { get; set; }
+        public RequestContext Context { get; set; }
         public string Name { get; set; }
 
         public ProjectCreateRequest() { }
 
-        public ProjectCreateRequest(string name)
+        public ProjectCreateRequest(string name, RequestContext context)
         {
-            this.RequestId = Guid.NewGuid().ToString();
+            this.Context = context;
             this.Name = name;
         }
     }

@@ -110,5 +110,59 @@ namespace Support.Discord.Services
             AttachTicketWatchComponent(builder, ticket.Id);
             return builder.Build();
         }
+
+        private static void AttachProjectUpdateComponent(ComponentBuilder builder, string projectId, int row = 0)
+        {
+            builder.WithButton("Update Project",
+                customId: $"project-update${projectId}",
+                style: ButtonStyle.Primary,
+                row: row);
+        }
+
+        private static void AttachProjectUnsynchronizeComponent(ComponentBuilder builder, string projectId, int row = 0)
+        {
+            builder.WithButton("Unsynchronize Project",
+                customId: $"project-unsync${projectId}",
+                style: ButtonStyle.Danger,
+                row: row);
+        }
+
+        private static void AttachProjectDeleteComponent(ComponentBuilder builder, string projectId, int row = 0)
+        {
+            builder.WithButton("Delete Project",
+                customId: $"project-delete${projectId}",
+                style: ButtonStyle.Danger,
+                row: row);
+        }
+
+        private static void AttachTicketCreateStoryComponent(ComponentBuilder builder, string projectId, int row = 0)
+        {
+            builder.WithButton("Create User Story",
+                customId: $"ticket-create-story${projectId}",
+                style: ButtonStyle.Secondary,
+                row: row,
+                emote: EmojiService.GetTypeEmoji(ETicketType.Story));
+        }
+
+        private static void AttachTicketCreateBugComponent(ComponentBuilder builder, string projectId, int row = 0)
+        {
+            builder.WithButton("Create Bug",
+                customId: $"ticket-create-bug${projectId}",
+                style: ButtonStyle.Secondary,
+                row: row,
+                emote: EmojiService.GetTypeEmoji(ETicketType.Bug));
+        } 
+
+        public static MessageComponent GetProjectComponents(DiscordProject project)
+        {
+            var builder = new ComponentBuilder();
+            AttachProjectUpdateComponent(builder, project.Id);
+            AttachProjectUnsynchronizeComponent(builder, project.Id);
+            AttachProjectDeleteComponent(builder, project.Id);
+
+            AttachTicketCreateStoryComponent(builder, project.Id, 1);
+            AttachTicketCreateBugComponent(builder, project.Id, 1);
+            return builder.Build();
+        }
     }
 }

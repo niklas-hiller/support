@@ -10,6 +10,7 @@ internal class SupportHub : Hub
     private readonly ILogger logger;
     private static readonly Dictionary<string, Project> projects = new Dictionary<string, Project>();
     private static readonly List<Ticket> tickets = new List<Ticket>();
+    private static readonly List<User> users = new List<User>();
 
     public SupportHub(ILogger<SupportHub> logger)
     {
@@ -34,11 +35,11 @@ internal class SupportHub : Hub
     /// <returns>The created project</returns>
     public async Task CreateProject(Session session, ProjectCreateRequest projectCreate)
     {
-        Project project = new Project(projectCreate.Name);
+        Project project = new Project(projectCreate.Name, projectCreate.Context.Agent);
         projects.Add(project.Id, project);
-        logger.LogInformation($"{session.Name} created a new Project '{project.Name}' ({project.Id})");
+        logger.LogInformation($"{session.Name} created a new Project '{project.Name}' ({project.Id}) for User {project.Owner}");
 
-        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectCreate.RequestId, project);
+        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectCreate.Context.Id, project);
     }
 
     /// <summary>
@@ -52,9 +53,9 @@ internal class SupportHub : Hub
     {
         Project project = projects[projectDelete.ProjectId];
         projects.Remove(project.Id);
-        logger.LogInformation($"{session.Name} deleted a Project '{project.Name}' ({project.Id})");
+        logger.LogInformation($"{session.Name} deleted a Project '{project.Name}' ({project.Id}) of User {project.Owner}");
 
-        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectDelete.RequestId, project);
+        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectDelete.Context.Id, project);
     }
 
     public async Task RetrieveProject(Session session, ProjectRetrieveRequest projectRetrieve)
@@ -62,7 +63,7 @@ internal class SupportHub : Hub
         Project project = projects[projectRetrieve.ProjectId];
         logger.LogInformation($"{session.Name} retrieve a Project '{project.Name}' ({project.Id})");
 
-        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectRetrieve.RequestId, project);
+        await Clients.Caller.SendAsync(ServerBroadcasts.SendProject, projectRetrieve.Context.Id, project);
     }
 
     /// <summary>

@@ -78,7 +78,7 @@ namespace Support.Discord.Handler
             #endregion
         }
 
-        public static async Task HandleCommandRules(SocketSlashCommand command, ECommandRules rule)
+        public static void HandleCommandRules(SocketSlashCommand command, ECommandRules rule)
         {
             switch (rule)
             {
@@ -100,32 +100,32 @@ namespace Support.Discord.Handler
                 switch (command.Data.Name)
                 {
                     case "create-project":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleCreateProjectCommand(command);
                         break;
                     case "delete-project":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleDeleteProjectCommand(command);
                         break;
                     case "synchronize-project":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleSynchronizeProjectCommand(command);
                         break;
                     case "unsynchronize-project":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleUnsynchronizeProjectCommand(command);
                         break;
                     case "create-ticket":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleCreateTicketCommand(command);
                         break;
                     case "update-ticket":
-                        await HandleCommandRules(command, ECommandRules.NO_DM);
+                        HandleCommandRules(command, ECommandRules.NO_DM);
 
                         await HandleUpdateTicketCommand(command);
                         break;

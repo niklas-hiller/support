@@ -24,6 +24,11 @@ namespace Support.Discord.Services
             { "priority_major", "Images/Major.png" },
             { "priority_critical", "Images/Critical.png" },
             { "priority_blocker", "Images/Blocker.png" },
+            { "issue_bug", "Images/Bug.png" },
+            { "issue_epic", "Images/Epic.png" },
+            { "issue_story", "Images/Story.png" },
+            { "issue_subtask", "Images/Sub-Task.png" },
+            { "issue_task", "Images/Task.png" }
         };
 
         private static Emote? GetEmoji(string emojiName)
@@ -39,7 +44,7 @@ namespace Support.Discord.Services
 
             if (emoji == null)
             {
-                string emojiPath;
+                string? emojiPath;
                 if (!Emojis.TryGetValue(emojiName, out emojiPath))
                 {
                     return null;
@@ -51,6 +56,23 @@ namespace Support.Discord.Services
                 .Emotes
                 .FirstOrDefault(x => x.Name.IndexOf(
                     emojiName, StringComparison.OrdinalIgnoreCase) != -1);
+        }
+
+        public static Emote? GetTypeEmoji(ETicketType type)
+        {
+            string? emojiName = null;
+            switch (type)
+            {
+                case ETicketType.Bug:
+                    emojiName = "issue_bug";
+                    break;
+                case ETicketType.Story:
+                    emojiName = "issue_story";
+                    break;
+            }
+            if (emojiName == null) return null;
+
+            return GetEmoji(emojiName);
         }
 
         public static Emote? GetPriorityEmoji(ETicketPriority priority)

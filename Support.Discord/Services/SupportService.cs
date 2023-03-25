@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.SignalR.Client;
 using NLog;
@@ -14,8 +15,8 @@ namespace Support.Discord.Services
         private static readonly DiscordSocketClient client = Program.client;
         private static readonly List<DiscordProject> projects = new List<DiscordProject>();
         private static readonly List<DiscordTicket> tickets = new List<DiscordTicket>();
-        private static readonly Dictionary<string, SocketSlashCommand> projectCreateQueue = new Dictionary<string, SocketSlashCommand>();
-        private static readonly Dictionary<string, SocketSlashCommand> projectDeleteQueue = new Dictionary<string, SocketSlashCommand>();
+        private static readonly Dictionary<string, SocketInteraction> projectCreateQueue = new Dictionary<string, SocketInteraction>();
+        private static readonly Dictionary<string, SocketInteraction> projectDeleteQueue = new Dictionary<string, SocketInteraction>();
         private static HubConnection hubConnection;
         private static readonly Session session = new() { GroupName = SessionGroups.Listener, Name = "Discord" };
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -68,18 +69,25 @@ namespace Support.Discord.Services
             }
         }
 
+        #region Getter
+
         private static DiscordTicket? GetTicketById(string ticketId)
         {
-            try
-            {
-                return tickets.First(x => x.Id == ticketId);
-            }
-            catch (InvalidOperationException e)
-            {
-                logger.Warn($"Couldn't find a ticket with the id {ticketId}");
-                return null;
-            }
+            return tickets.FirstOrDefault(x => x.Id == ticketId, null);
         }
+
+        public static DiscordProject? GetProjectById(string projectId)
+        {
+            return projects.FirstOrDefault(x => x.Id == projectId, null);
+        }
+
+        public static SocketGuild? GetGuildByProjectId(string projectId)
+        {
+            DiscordProject project = GetProjectById(projectId);
+            return project.Synchronization != null ? client.GetGuild(project.Synchronization.GuildId) : null;
+        }
+
+        #endregion
 
         private static async Task TransmitProject(ProjectCreateRequest projectCreateRequest)
         {
@@ -110,41 +118,46 @@ namespace Support.Discord.Services
             {
                 logger.Info("Identified received project as 'Create Project' request");
 
-                var correspondingCommand = projectCreateQueue[requestId];
+                SocketInteraction? correspondingInteraction = projectCreateQueue[requestId];
                 projectCreateQueue.Remove(requestId);
 
-                DiscordProject discordProject = new DiscordProject(project, correspondingCommand.User.Id);
+                DiscordProject discordProject = new DiscordProject(project);
 
-                var isSync = (bool)HelperService.GetDataObjectFromSlashCommand(correspondingCommand, "sync");
-                if (isSync)
+                #region Sync Option for Slash Commands
+                if (correspondingInteraction.GetType() == typeof(SocketSlashCommand))
                 {
-                    SynchronizeProject(discordProject, (ulong)correspondingCommand.GuildId, (ulong)correspondingCommand.ChannelId);
-                }
+                    bool isSync = (bool)HelperService.GetDataObjectFromSlashCommand((SocketSlashCommand)correspondingInteraction, "sync");
+                    if (isSync)
+                    {
+                        ulong guildId = correspondingInteraction.GuildId ?? 0;
+                        logger.Info($"Project was requested to be synchronized to guild {guildId}");
+                        await SynchronizeProject(discordProject, guildId);
+                    }
+                };
+                #endregion
 
                 projects.Add(discordProject);
-                await correspondingCommand.RespondAsync($"Successfully created your project '{project.Name}'. ({project.Id})", ephemeral: true);
+                await correspondingInteraction.RespondAsync($"Successfully created your project '{project.Name}'. ({project.Id})", ephemeral: true);
             }
             else if (projectDeleteQueue.ContainsKey(requestId))
             {
                 logger.Info("Identified received project as 'Delete Project' request");
 
-                var correspondingCommand = projectDeleteQueue[requestId];
+                var correspondingInteraction = projectDeleteQueue[requestId];
                 projectDeleteQueue.Remove(requestId);
 
                 DiscordProject discordProject = GetProjectById(project.Id);
 
-                UnsynchronizeProject(discordProject);
+                await UnsynchronizeProject(discordProject);
 
                 projects.Remove(discordProject);
-                await correspondingCommand.RespondAsync($"Successfully deleted your project '{project.Name}'. ({project.Id})", ephemeral: true);
+                await correspondingInteraction.RespondAsync($"Successfully deleted your project '{project.Name}'. ({project.Id})", ephemeral: true);
             }
             else
             {
                 logger.Info($"Couldn't identify Project ({project.Id}) from server, discarded ticket.");
                 return;
             }
-
-
         }
 
         private static async Task TransmitTicket(TicketCreateRequest ticketCreateRequest)
@@ -179,8 +192,8 @@ namespace Support.Discord.Services
             }
 
             // Check if ticket already exists on discord client
-            DiscordTicket discordTicket;
-            if (project.Tickets.FirstOrDefault(x => x.Id == ticket.Id, null) == null)
+            DiscordTicket? discordTicket = GetTicketById(ticket.Id);
+            if (discordTicket == null)
             {
                 discordTicket = new DiscordTicket(ticket);
                 project.Tickets.Add(discordTicket);
@@ -188,7 +201,6 @@ namespace Support.Discord.Services
             }
             else
             {
-                discordTicket = GetTicketById(ticket.Id);
                 discordTicket.Update(ticket);
             }
 
@@ -217,22 +229,28 @@ namespace Support.Discord.Services
             await TransmitTicket(request);
         }
 
-        private static DiscordProject GetProjectById(string projectId)
-        {
-            return projects.First(x => x.Id == projectId);
-        }
+        #region Project Synchronization
 
-        public static SocketGuild? GetGuildByProjectId(string projectId)
-        {
-            DiscordProject project = GetProjectById(projectId);
-            return project.Synchronization != null ? client.GetGuild(project.Synchronization.GuildId) : null;
-        }
-
-        private static bool SynchronizeProject(DiscordProject project, ulong guildId, ulong channelId)
+        private async static Task<bool> SynchronizeProject(DiscordProject project, ulong guildId)
         {
             if (project.Synchronization == null)
             {
-                project.Synchronization = new(guildId, channelId);
+                SocketGuild guild = client.GetGuild(guildId);
+                if (guild == null)
+                {
+                    logger.Warn($"Project {project.Id} could not be synchronized!");
+                    return false;
+                }
+                RestTextChannel channel = await guild.CreateTextChannelAsync($"{project.SimplifiedName()}-tickets");
+
+                var newTicketMessage = await channel.SendMessageAsync(
+                    embed: EmbedService.GetProjectEmbedded(project),
+                    components: ComponentService.GetProjectComponents(project));
+                await newTicketMessage.PinAsync();
+                var messageId = newTicketMessage.Id;
+
+
+                project.Synchronization = new(guild.Id, channel.Id, messageId);
 
                 project.Tickets.ForEach(async ticket =>
                 {
@@ -244,7 +262,7 @@ namespace Support.Discord.Services
             return false;
         }
 
-        private static bool UnsynchronizeProject(DiscordProject project)
+        private static async Task<bool> UnsynchronizeProject(DiscordProject project)
         {
             if (project.Synchronization != null)
             {
@@ -256,21 +274,13 @@ namespace Support.Discord.Services
                     logger.Warn($"Project {project.Id} has a broken sync!");
                     return false;
                 }
-
-                project.Tickets.ForEach(async ticket =>
+                project.Tickets.ForEach(ticket =>
                 {
-                    if (ticket.MessageId != null)
-                    {
-                        await channel.DeleteMessageAsync((ulong)ticket.MessageId);
-                    }
-                    if (ticket.WatchMessageId != null)
-                    {
-                        await channel.DeleteMessageAsync((ulong)ticket.WatchMessageId);
-                    }
                     ticket.MessageId = null;
                     ticket.WatchMessageId = null;
                     ticket.Watchers = new List<ulong>();
                 });
+                await channel.DeleteAsync();
                 project.Synchronization = null;
 
                 return true;
@@ -278,12 +288,14 @@ namespace Support.Discord.Services
             return false;
         }
 
+        #endregion
+
         private static Dictionary<string, string> GetTicketCustomFieldsFromComponent(List<SocketMessageComponentData> components, ETicketType type)
         {
             Dictionary<string, string> dictionary = new Dictionary<string, string>();
             switch (type)
             {
-                case ETicketType.Request:
+                case ETicketType.Story:
                     string description = components
                         .First(x => x.CustomId == "description").Value;
                     dictionary.Add("Description", description);
@@ -306,6 +318,8 @@ namespace Support.Discord.Services
             return dictionary;
         }
 
+        #region Watch Ticket
+
         private static bool SetWatchTicket(string ticketId, ulong userId, bool isWatching)
         {
             DiscordTicket? ticket = GetTicketById(ticketId);
@@ -323,17 +337,54 @@ namespace Support.Discord.Services
             return true;
         }
 
-        private static async Task InformWatchers(DiscordTicket ticket)
+        private static bool InformWatchers(DiscordTicket ticket)
         {
-            var guild = GetGuildByProjectId(ticket.ProjectId);
-            foreach (ulong watcherId in ticket.Watchers)
+            SocketGuild? guild = GetGuildByProjectId(ticket.ProjectId);
+            if (guild == null)
             {
-                var user = guild.Users.First(x => x.Id == watcherId);
-                if (user == null) return;
-                var dmChannel = await user.CreateDMChannelAsync();
+                logger.Error($"Couldn't retrieve synchronized guild of project {ticket.ProjectId}");
+                return false;
+            }
+
+            List<SocketGuildUser> users = guild.Users.Where(x => ticket.Watchers.Contains(x.Id)).ToList();
+            users.ForEach(async user =>
+            {
+                IDMChannel dmChannel = await user.CreateDMChannelAsync();
                 await dmChannel.SendMessageAsync(
                     embed: EmbedService.GetWatcherEmbedded(ticket));
+            });
+
+            return true;
+        }
+
+        #endregion
+
+        #region Update Messages
+
+        private static async Task UpdateProject(DiscordProject project)
+        {
+            if (project.Synchronization == null)
+            {
+                logger.Warn($"Project {project.Id} is currently not synched!");
+                return;
             }
+
+            SocketGuild guild = client.GetGuild(project.Synchronization.GuildId);
+            SocketTextChannel channel = guild.GetTextChannel(project.Synchronization.ChannelId);
+
+            if (guild == null || channel == null)
+            {
+                logger.Warn($"Project {project.Id} has a broken sync!");
+                return;
+            }
+
+            // Check what happens if message dont exist
+            logger.Info($"Project {project.Id} component found, updating...");
+            await channel.ModifyMessageAsync(project.Synchronization.MessageId, x =>
+            {
+                x.Embed = EmbedService.GetProjectEmbedded(project);
+                x.Components = ComponentService.GetProjectComponents(project);
+            });
         }
 
         private static async Task UpdateTicket(DiscordTicket ticket)
@@ -346,7 +397,7 @@ namespace Support.Discord.Services
             }
 
             SocketGuild guild = client.GetGuild(project.Synchronization.GuildId);
-            SocketTextChannel channel = guild.GetTextChannel((ulong)project.Synchronization.ChannelId);
+            SocketTextChannel channel = guild.GetTextChannel(project.Synchronization.ChannelId);
             if (guild == null || channel == null)
             {
                 logger.Warn($"Project {project.Id} has a broken sync!");
@@ -379,13 +430,73 @@ namespace Support.Discord.Services
                 ticket.WatchMessageId = newWatchMessage.Id;
             }
 
-            await InformWatchers(ticket);
+            InformWatchers(ticket);
+        }
+
+        #endregion
+
+        public static async Task TicketCreateStoryComponent(SocketMessageComponent button)
+        {
+            string projectId = button.Data.CustomId.Split("$")[1];
+            logger.Info($"Initiate create story for Project {projectId}");
+
+            var modal = new ModalBuilder()
+                .WithTitle("Create Ticket (Story)")
+                .WithCustomId($"story-modal${projectId}")
+                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
+                .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
+
+            await button.RespondWithModalAsync(modal.Build());
+        }
+
+        public static async Task TicketCreateBugComponent(SocketMessageComponent button)
+        {
+            string projectId = button.Data.CustomId.Split("$")[1];
+            logger.Info($"Initiate create bug for Project {projectId}");
+
+            var modal = new ModalBuilder()
+                .WithTitle("Create Ticket (Bug)")
+                .WithCustomId($"bug-modal${projectId}")
+                .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
+                .AddTextInput("Environment", "environment", placeholder: "The environment information during the bug occurence, i.e. Software Version.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Steps to reproduce", "steps", placeholder: "Steps to reproduce written down as bullet points.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Current Behaviour", "currentBehaviour", placeholder: "The behaviour that currently occurs.", style: TextInputStyle.Paragraph, required: true)
+                .AddTextInput("Expected Behaviour", "expectedBehaviour", placeholder: "The behaviour you would expect to occur.", style: TextInputStyle.Paragraph, required: true);
+
+            await button.RespondWithModalAsync(modal.Build());
+        }
+
+        public static async Task ProjectUnsynchronizeComponent(SocketMessageComponent button)
+        {
+            string projectId = button.Data.CustomId.Split("$")[1];
+            logger.Info($"Initiate unsychronize of Project {projectId}");
+
+            DiscordProject? project = GetProjectById(projectId);
+
+            if (project == null)
+            {
+                logger.Error($"Project ({projectId}) could not be found.");
+                return;
+            }
+
+            await UnsynchronizeProject(project);
+        }
+
+        public static async Task ProjectDeleteComponent(SocketMessageComponent button)
+        {
+            string projectId = button.Data.CustomId.Split("$")[1];
+            logger.Info($"Initiate delete of Project {projectId}");
+
+            ProjectDeleteRequest request = new ProjectDeleteRequest(projectId, new(button.User.Id.ToString()));
+            projectDeleteQueue.Add(request.Context.Id, button);
+
+            await TransmitProject(request);
         }
 
         public static async Task WatchComponent(SocketMessageComponent menu)
         {
             bool isWatching = string.Join(", ", menu.Data.Values) == "watch" ? true : false;
-            string ticketId = menu.Data.CustomId.Split(" ")[1];
+            string ticketId = menu.Data.CustomId.Split("$")[1];
 
             SetWatchTicket(ticketId, menu.User.Id, isWatching);
             if (isWatching)
@@ -409,8 +520,8 @@ namespace Support.Discord.Services
                 case "bug-modal":
                     ticketType = ETicketType.Bug;
                     break;
-                case "request-modal":
-                    ticketType = ETicketType.Request;
+                case "story-modal":
+                    ticketType = ETicketType.Story;
                     break;
             }
 
@@ -434,20 +545,38 @@ namespace Support.Discord.Services
 
         public static async Task CreateProjectCommand(SocketSlashCommand command)
         {
-            var projectName = HelperService.GetDataObjectFromSlashCommand(command, "project-name").ToString();
+            string? projectName = HelperService.GetDataObjectFromSlashCommand(command, "project-name").ToString();
 
-            ProjectCreateRequest request = new ProjectCreateRequest(projectName);
-            projectCreateQueue.Add(request.RequestId, command);
+            if (projectName == null)
+            {
+                logger.Error("Project Create Command did not provide any project name");
+                return;
+            }
+
+            ProjectCreateRequest request = new ProjectCreateRequest(projectName, new(command.User.Id.ToString()));
+            projectCreateQueue.Add(request.Context.Id, command);
 
             await TransmitProject(request);
         }
 
         public static async Task DeleteProjectCommand(SocketSlashCommand command)
         {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            string? projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
 
-            ProjectDeleteRequest request = new ProjectDeleteRequest(projectId);
-            projectDeleteQueue.Add(request.RequestId, command);
+            if (projectId == null)
+            {
+                logger.Error("Project Delete Command did not provide any project id");
+                return;
+            }
+            if (GetProjectById(projectId) == null)
+            {
+                logger.Error($"Project ({projectId}) could not be found.");
+                await command.RespondAsync($"Couldn't find the requested project.", ephemeral: true);
+                return;
+            }
+
+            ProjectDeleteRequest request = new ProjectDeleteRequest(projectId, new(command.User.Id.ToString()));
+            projectDeleteQueue.Add(request.Context.Id, command);
 
             await TransmitProject(request);
         }
@@ -455,10 +584,24 @@ namespace Support.Discord.Services
         public static async Task CreateTicketCommand(SocketSlashCommand command)
         {
             var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            if (projectId == null)
+            {
+                logger.Error("Ticket Create Command did not provide any project id");
+                return;
+            }
+            if (GetProjectById(projectId) == null)
+            {
+                logger.Error($"Project ({projectId}) could not be found.");
+                await command.RespondAsync($"Couldn't find the requested project.", ephemeral: true);
+                return;
+            }
             var modal = new ModalBuilder();
-            ETicketType type = TicketType.FromString(HelperService.GetDataObjectFromSlashCommand(command, "type").ToString());
+            ETicketType type = TicketType.FromString(HelperService.GetDataObjectFromSlashCommand(command, "type").ToString() ?? "");
             switch (type)
             {
+                case ETicketType.Unknown:
+                    logger.Error("Received unkown ticket type request");
+                    return;
                 case ETicketType.Bug:
                     modal
                         .WithTitle("Create Ticket (Bug)")
@@ -469,10 +612,10 @@ namespace Support.Discord.Services
                         .AddTextInput("Current Behaviour", "currentBehaviour", placeholder: "The behaviour that currently occurs.", style: TextInputStyle.Paragraph, required: true)
                         .AddTextInput("Expected Behaviour", "expectedBehaviour", placeholder: "The behaviour you would expect to occur.", style: TextInputStyle.Paragraph, required: true);
                     break;
-                case ETicketType.Request:
+                case ETicketType.Story:
                     modal
-                        .WithTitle("Create Ticket (Request)")
-                        .WithCustomId($"request-modal${projectId}")
+                        .WithTitle("Create Ticket (Story)")
+                        .WithCustomId($"story-modal${projectId}")
                         .AddTextInput("Name", "name", placeholder: "Please enter a short meaningful name for the ticket.", required: true)
                         .AddTextInput("Description", "description", placeholder: "Please enter a description to the ticket.", style: TextInputStyle.Paragraph, required: true);
                     break;
@@ -495,7 +638,7 @@ namespace Support.Discord.Services
                 await InitiateTransmitUpdateTicket(ticketId, status, priority);
                 await command.RespondAsync($"Successfully updated Ticket {ticketId}", ephemeral: true);
             }
-            catch (KeyNotFoundException e)
+            catch (KeyNotFoundException)
             {
                 await command.RespondAsync($"Couldn't updated Ticket {ticketId}. (Ticket Id does not exist)", ephemeral: true);
             }
@@ -503,46 +646,72 @@ namespace Support.Discord.Services
 
         public static async Task SynchronizeProjectCommand(SocketSlashCommand command)
         {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            if (command.GuildId != null && command.ChannelId != null && projectId != null)
+            string? projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            if (projectId == null)
             {
-                DiscordProject project = GetProjectById(projectId);
-                if (SynchronizeProject(project, (ulong)command.GuildId, (ulong)command.ChannelId))
-                {
-                    await command.RespondAsync($"Successfully synchronized the project {projectId}.", ephemeral: true);
-                    return;
-                }
-                else
-                {
-                    await command.RespondAsync($"Failed to synchronize the project (ALready active synchronization).", ephemeral: true);
-                    return;
-                }
+                logger.Error("Synchronize Project Command did not provide any project id");
+                return;
             }
-            await command.RespondAsync($"Failed to synchronize the project (No guildId, channelId, or projectId provided).", ephemeral: true);
+            if (command.GuildId == null)
+            {
+                logger.Error("Synchronize Project Command did not provide any guild id");
+                return;
+            }
+            DiscordProject? project = GetProjectById(projectId);
+            if (project == null)
+            {
+                logger.Error($"Project ({projectId}) could not be found.");
+                await command.RespondAsync($"Couldn't find the requested project.", ephemeral: true);
+                return;
+            }
+            if (await SynchronizeProject(project, (ulong)command.GuildId))
+            {
+                await command.RespondAsync($"Successfully synchronized the project {projectId}.", ephemeral: true);
+                return;
+            }
+            else
+            {
+                await command.RespondAsync($"Failed to synchronize the project (ALready active synchronization).", ephemeral: true);
+                return;
+            }
         }
 
         public static async Task UnsynchronizeProjectCommand(SocketSlashCommand command)
         {
-            var projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
-            if (projectId != null)
+            string? projectId = HelperService.GetDataObjectFromSlashCommand(command, "project-id").ToString();
+            if (projectId == null)
             {
-                DiscordProject project = GetProjectById(projectId);
-                if (UnsynchronizeProject(project))
-                {
-                    await command.RespondAsync($"Successfully unsynchronized the project {projectId}.", ephemeral: true);
-                }
-                else
-                {
-                    await command.RespondAsync($"Failed to unsynchronize the project (No active synchronization).", ephemeral: true);
-                    return;
-                }
+                logger.Error("Unsynchronize Project Command did not provide any project id");
+                return;
             }
-            await command.RespondAsync($"Failed to unsynchronize the project (No project id provided).", ephemeral: true);
+            DiscordProject? project = GetProjectById(projectId);
+            if (project == null)
+            {
+                logger.Error($"Project ({projectId}) could not be found.");
+                await command.RespondAsync($"Couldn't find the requested project.", ephemeral: true);
+                return;
+            }
+            if (await UnsynchronizeProject(project))
+            {
+                await command.RespondAsync($"Successfully unsynchronized the project {projectId}.", ephemeral: true);
+                return;
+            }
+            else
+            {
+                await command.RespondAsync($"Failed to unsynchronize the project (No active synchronization).", ephemeral: true);
+                return;
+            }
         }
 
         public static async Task ForceUnwatchCommand(SocketSlashCommand command)
         {
-            string ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket-id").ToString() ?? "0";
+            string? ticketId = HelperService.GetDataObjectFromSlashCommand(command, "ticket-id").ToString();
+            if (ticketId == null)
+            {
+                logger.Error("Project Delete Command did not provide any project id");
+                return;
+            }
+
             try
             {
                 bool success = SetWatchTicket(ticketId, command.User.Id, false);
@@ -560,7 +729,7 @@ namespace Support.Discord.Services
                 }
 
             }
-            catch (KeyNotFoundException e)
+            catch (KeyNotFoundException)
             {
                 await command.RespondAsync(
                     $"Failed to force removed ticket {ticketId} from your watchlist.\n" +

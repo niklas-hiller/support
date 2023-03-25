@@ -2,14 +2,14 @@
 {
     public class ProjectDeleteRequest
     {
-        public string RequestId { get; set; }
+        public RequestContext Context { get; set; }
         public string ProjectId { get; set; }
 
         public ProjectDeleteRequest() { }
 
-        public ProjectDeleteRequest(string id)
+        public ProjectDeleteRequest(string id, RequestContext context)
         {
-            this.RequestId = Guid.NewGuid().ToString();
+            this.Context = context;
             this.ProjectId = id;
         }
     }

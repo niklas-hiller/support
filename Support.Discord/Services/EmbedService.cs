@@ -19,21 +19,13 @@ namespace Support.Discord.Services
 
         public static Embed GetTicketEmbedded(DiscordTicket ticket)
         {
-            string name_prefix = "Unknown";
-            switch (ticket.Type)
-            {
-                case ETicketType.Bug:
-                    name_prefix = "Bug";
-                    break;
-                case ETicketType.Request:
-                    name_prefix = "Request";
-                    break;
-            }
+            string typeEmoji = EmojiService.GetTypeEmoji(ticket.Type)?.ToString() ?? string.Empty;
+            DiscordProject project = SupportService.GetProjectById(ticket.ProjectId);
 
             var builder = new EmbedBuilder();
             builder
                 .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
-                .WithTitle($"[{name_prefix}] {ticket.Title}")
+                .WithTitle($"{typeEmoji} [{project.SimplifiedName()}] {ticket.Title}")
                 .WithDescription(
                 $"**Reporter:** {ticket.Author}\n" +
                 $"**Created At:** <t:{ticket.CreatedAt.ToUnixTimeSeconds()}:R>\n" +
@@ -48,27 +40,33 @@ namespace Support.Discord.Services
         public static Embed GetWatcherEmbedded(DiscordTicket ticket)
         {
             var guild = SupportService.GetGuildByProjectId(ticket.ProjectId);
-            string name_prefix = "Unknown";
-            switch (ticket.Type)
-            {
-                case ETicketType.Bug:
-                    name_prefix = "Bug";
-                    break;
-                case ETicketType.Request:
-                    name_prefix = "Request";
-                    break;
-            }
+            DiscordProject project = SupportService.GetProjectById(ticket.ProjectId);
 
             var builder = new EmbedBuilder();
             builder
                 .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
                 .WithTitle($"[Notification] Ticket {ticket.Id} was updated")
                 .WithDescription(
-                $"There was an update in **{guild.Name}** for the ticket **[{name_prefix}] {ticket.Title}**.\n\n" +
+                $"There was an update in **{guild.Name}** for the ticket **[{project.SimplifiedName()}] {ticket.Title}**.\n\n" +
                 "**If you no longer want to be informed about the ticket, please select unwatch on the ticket.**\n")
                 .WithColor(Color.Green)
                 .WithCurrentTimestamp()
                 .WithFooter($"Type '/force-unwatch {ticket.Id}' to force a ticket unwatch. Keep in mind that the select menu might display a wrong value then!");
+            return builder.Build();
+        }
+
+        public static Embed GetProjectEmbedded(DiscordProject project)
+        {
+            var builder = new EmbedBuilder();
+            builder
+                .WithAuthor(client.CurrentUser.ToString(), client.CurrentUser.GetAvatarUrl() ?? client.CurrentUser.GetDefaultAvatarUrl())
+                .WithTitle($"[PROJECT] {project.Name}")
+                .WithDescription(
+                $"**Owner:** <@{project.Owner}>\n" +
+                $"**Created At:** <t:{project.CreatedAt.ToUnixTimeSeconds()}:R>")
+                .WithColor(Color.Green)
+                .WithCurrentTimestamp()
+                .WithFooter($"Project Id: {project.Id}");
             return builder.Build();
         }
     }

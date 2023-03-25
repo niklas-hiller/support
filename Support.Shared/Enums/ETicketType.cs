@@ -9,8 +9,8 @@ namespace Support.Shared.Enums
         Unknown,
         [Description("Bug")]
         Bug,
-        [Description("Request")]
-        Request,
+        [Description("Story")]
+        Story,
     }
 
     public static class TicketType
@@ -21,8 +21,8 @@ namespace Support.Shared.Enums
             {
                 case "bug":
                     return ETicketType.Bug;
-                case "request":
-                    return ETicketType.Request;
+                case "story":
+                    return ETicketType.Story;
             }
             return ETicketType.Unknown;
         }
